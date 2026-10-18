@@ -22,7 +22,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -283,7 +283,7 @@ private fun GroupField(value: String, groups: List<String>, onChange: (String) -
             supportingText = { Text(stringResource(R.string.group_help)) },
             trailingIcon = { if (groups.isNotEmpty()) ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
         )
         ExposedDropdownMenu(expanded = expanded && groups.isNotEmpty(), onDismissRequest = { expanded = false }) {
             DropdownMenuItem(text = { Text(stringResource(R.string.no_group)) }, onClick = { onChange(""); expanded = false })
@@ -304,7 +304,7 @@ private fun <T> Picker(label: String, selected: String, options: List<Pair<T, St
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { (value, text) ->

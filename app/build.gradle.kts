@@ -1,14 +1,14 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "app.bellterm"
-    compileSdk = 36
+    compileSdk = 37
     ndkVersion = "27.2.12479018"
 
     defaultConfig {
@@ -53,14 +53,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         compose = true
     }
-    sourceSets["main"].jniLibs.srcDir(layout.buildDirectory.dir("rustJniLibs"))
-    sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("legalAssets"))
+    sourceSets["main"].jniLibs.directories.add(layout.buildDirectory.dir("rustJniLibs").get().asFile.path)
+    sourceSets["main"].assets.directories.add(layout.buildDirectory.dir("legalAssets").get().asFile.path)
     packaging {
         jniLibs.useLegacyPackaging = false
     }
@@ -69,7 +66,7 @@ android {
 // The Rust core (native/) is built by cargo-ndk into build/rustJniLibs.
 // It needs Zig 0.15.2 for libghostty-vt; see README.md.
 val cargoProfile = providers.gradleProperty("herdr.rustProfile").orElse("release")
-val buildRust by tasks.registering(Exec::class) {
+val buildRust = tasks.register<Exec>("buildRust") {
     val native = rootProject.layout.projectDirectory.dir("native")
     val out = layout.buildDirectory.dir("rustJniLibs")
     workingDir = native.asFile
@@ -98,7 +95,7 @@ val buildRust by tasks.registering(Exec::class) {
 }
 // LICENSE, NOTICE, and the vendored protocol's attribution ship in the APK for
 // the licences screen, copied so the repository keeps a single copy of each.
-val legalAssets by tasks.registering(Copy::class) {
+val legalAssets = tasks.register<Copy>("legalAssets") {
     val root = rootProject.layout.projectDirectory
     from(root.file("LICENSE")) { rename { "LICENSE.txt" } }
     from(root.file("NOTICE")) { rename { "NOTICE.txt" } }
@@ -106,6 +103,12 @@ val legalAssets by tasks.registering(Copy::class) {
     into(layout.buildDirectory.dir("legalAssets/licenses"))
 }
 tasks.named("preBuild") { dependsOn(buildRust, legalAssets) }
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
+    }
+}
 
 dependencies {
     implementation(libs.androidx.core.ktx)

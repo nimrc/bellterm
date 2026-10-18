@@ -17,7 +17,7 @@ android {
         // loader supports from API 29; older releases refuse the library.
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
+        versionCode = 10000
         versionName = "1.0.0"
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")

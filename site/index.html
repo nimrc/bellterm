@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bellterm — Herdr on Android</title>
+<meta name="description" content="Bellterm is a native Android client for Herdr. Reach your workspaces, tabs, panes, and agents over SSH, and get a notification when an agent needs you.">
+<meta name="theme-color" content="#13202F">
+<link rel="canonical" href="https://bellterm.app/">
+<link rel="alternate" hreflang="en" href="https://bellterm.app/">
+<link rel="alternate" hreflang="zh-CN" href="https://bellterm.app/zh/">
+<link rel="alternate" hreflang="x-default" href="https://bellterm.app/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:title" content="Bellterm">
+<meta property="og:description" content="A native Android client for Herdr, over SSH.">
+<meta property="og:url" content="https://bellterm.app/">
+<meta property="og:image" content="https://bellterm.app/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/"><img src="/icon.svg" alt="">Bellterm</a>
+  <nav aria-label="Main">
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#start">Get started</a>
+    <a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a>
+  </nav>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <div>
+      <h1>Your Herdr agents, on your phone.</h1>
+      <p class="lede">Bellterm is a native Android client for <a href="https://herdr.dev/">Herdr</a>. Reach its workspaces, tabs, and panes over SSH, answer an agent when it rings, and put the phone away. Everything keeps running on the host.</p>
+      <div class="actions">
+        <a class="button" href="https://dl.bellterm.app/bellterm.apk">Download the APK</a>
+        <span class="fine">Android 10 or newer, arm64 and x86_64</span>
+      </div>
+    </div>
+
+    <div class="phone" role="img" aria-label="Bellterm attached to a Herdr workspace, with a notification that an agent needs input">
+      <div class="screen" aria-hidden="true">
+        <div class="status"><span>9:41</span><span>5G ▮▮▮</span></div>
+        <div class="bar"><span>☰</span><b>api-server</b><span class="branch">main ↑2</span></div>
+        <div class="tabs">
+          <span><i class="dot work"></i>shell</span>
+          <span class="on"><i class="dot wait"></i>agent</span>
+          <span><i class="dot"></i>logs</span>
+        </div>
+<div class="term"><span class="dim">● Read crates/api/src/routes.rs</span>
+<span class="dim">● Edit 3 files, +48 −12</span>
+
+I've moved the rate limiter in front of the auth middleware. The tests need a database, so I'd like to run them:
+
+<span class="p">$</span> cargo test --workspace
+
+<span class="q">Allow this command?</span>
+  1. Yes
+  2. Yes, and don't ask again
+  3. No, tell me what to do
+
+<span class="p">›</span> <i class="cursor"></i></div>
+        <div class="keys">
+          <span>Esc</span><span>Tab</span><span class="latched">Ctrl</span><span>Alt</span><span>←</span><span>↓</span><span>↑</span><span>→</span>
+        </div>
+        <div class="note">
+          <img src="/icon.svg" alt="">
+          <b>api-server needs input</b>
+          <span>Waiting in tab “agent”</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap points">
+    <div class="point">
+      <h2>Native Android</h2>
+      <p>Kotlin and Rust, built for speed.</p>
+    </div>
+    <div class="point">
+      <h2>Minimal by design</h2>
+      <p>A clean UI, zero distractions, all function.</p>
+    </div>
+    <div class="point">
+      <h2>Made for small screens</h2>
+      <p>Extra keys and a side drawer, all in one hand.</p>
+    </div>
+    <div class="point">
+      <h2>Open source</h2>
+      <p>Apache License 2.0</p>
+    </div>
+  </div>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>The phone is a window. Herdr owns the session.</h2>
+      <p class="intro">Bellterm doesn't run your terminals. It attaches to the Herdr daemon on your machine, the way the desktop client does, and draws what Herdr sends. Lose signal, lock the screen, or close the app: the panes and agents carry on, and you pick up where they are when you come back.</p>
+      <div class="flow">
+        <div class="end">
+          <h3>Bellterm</h3>
+          <p>Draws Herdr's panes with libghostty-vt, sends your keys and touches, and turns the daemon's agent alerts into Android notifications.</p>
+        </div>
+        <div class="wire">
+          <svg viewBox="0 0 160 24" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M2 12H158" stroke="#D9A94F" stroke-width="2" stroke-dasharray="6 5" fill="none"/>
+            <circle cx="2" cy="12" r="2" fill="#D9A94F"/><circle cx="158" cy="12" r="2" fill="#D9A94F"/>
+          </svg>
+          <span>SSH, through jump hosts if needed<br><code>herdr remote-client-bridge</code></span>
+        </div>
+        <div class="end host">
+          <h3>Your machine</h3>
+          <p>Runs the Herdr daemon with your workspaces, tabs, panes, and agents. Bellterm never installs, starts, or upgrades anything there.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>Everything you do in Herdr, from your phone.</h2>
+      <p class="intro">Herdr's layout, as Herdr lays it out, with the controls a phone needs around it.</p>
+      <div class="cols">
+        <div>
+          <h3>Agents</h3>
+          <ul>
+            <li><strong>Working, Needs input, Done, Idle</strong> for every agent, in the drawer.</li>
+            <li><strong>Notifications</strong> when an agent needs you or finishes while the app is in the background.</li>
+            <li><strong>Tap an agent</strong> to jump straight to its pane.</li>
+            <li><strong>Workspaces</strong> with branch, ahead and behind, and worktree.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Terminal</h3>
+          <ul>
+            <li><strong>libghostty-vt</strong> for graphemes, wide characters, and colour.</li>
+            <li><strong>An extra-keys row</strong> with Esc, Tab, latching Ctrl and Alt, and repeating arrows.</li>
+            <li><strong>CJK input</strong> composes in place at the cursor. Hardware keyboards work too.</li>
+            <li><strong>Nerd Font icons</strong>, ten colour schemes, pinch to zoom, long-press to copy.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>SSH</h3>
+          <ul>
+            <li><strong>Jump hosts</strong> chained like <code>ssh -J</code>, each hop's host key checked.</li>
+            <li><strong>Keys and certificates</strong>: Ed25519 generated on the phone, or import RSA, ECDSA, and Ed25519 keys.</li>
+            <li><strong>Import ~/.ssh/config</strong>: every Host becomes a node, ProxyJump included.</li>
+            <li><strong>Secrets</strong> encrypted with a key held by the Android Keystore.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <h2>Get started</h2>
+      <p class="intro">You need a machine you can reach over SSH with Herdr 0.9.0 or later on it.</p>
+      <ol class="steps">
+        <li>
+          <div>
+            <h3>Install Bellterm</h3>
+            <p><a href="https://dl.bellterm.app/bellterm.apk">Download the APK</a> and open it on your phone. On first launch Bellterm generates an Ed25519 key for this device.</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Authorise the phone's key</h3>
+            <p>In Keys &amp; certificates, copy the public key and add it to the host. You can sign it with your SSH CA instead.</p>
+            <pre>echo 'ssh-ed25519 AAAA… bellterm@Pixel7' &gt;&gt; ~/.ssh/authorized_keys</pre>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Add a node and attach</h3>
+            <p>Add the host as a node, or import your SSH config. Compare the host key fingerprint the first time you connect. If no Herdr server is running for the session, start one on the host with <code>herdr</code>.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Requirements</h2>
+      <dl class="reqs">
+        <div><dt>Phone</dt><dd>Android 10 (API 29) or newer, on arm64 or x86_64.</dd></div>
+        <div><dt>Host</dt><dd>Herdr 0.9.0 or later and <code>/bin/sh</code>. Windows hosts that only offer PowerShell aren't supported.</dd></div>
+        <div><dt>Jump hosts</dt><dd>SSH with TCP forwarding allowed. Nothing else.</dd></div>
+      </dl>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Bellterm works with Herdr but is not affiliated with, endorsed by, or supported by Herdr or herdr.dev.</p>
+    <p>Released under the Apache License 2.0.</p>
+  </div>
+</footer>
+</body>
+</html>

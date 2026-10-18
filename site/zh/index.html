@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bellterm — 手机上的 Herdr</title>
+<meta name="description" content="Bellterm 是 Herdr 的原生 Android 客户端。通过 SSH 访问工作区、标签页、窗格和 agent，agent 需要你时收到通知。">
+<meta name="theme-color" content="#13202F">
+<link rel="canonical" href="https://bellterm.app/zh/">
+<link rel="alternate" hreflang="en" href="https://bellterm.app/">
+<link rel="alternate" hreflang="zh-CN" href="https://bellterm.app/zh/">
+<link rel="alternate" hreflang="x-default" href="https://bellterm.app/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:title" content="Bellterm">
+<meta property="og:description" content="Herdr 的原生 Android 客户端，基于 SSH。">
+<meta property="og:url" content="https://bellterm.app/zh/">
+<meta property="og:image" content="https://bellterm.app/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/zh/"><img src="/icon.svg" alt="">Bellterm</a>
+  <nav aria-label="主导航">
+    <a href="#how">工作原理</a>
+    <a href="#features">功能</a>
+    <a href="#start">开始使用</a>
+    <a href="/" hreflang="en" lang="en">English</a>
+  </nav>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <div>
+      <h1>把 Herdr 的 agent<br>装进口袋。</h1>
+      <p class="lede">Bellterm 是 <a href="https://herdr.dev/">Herdr</a> 的原生 Android 客户端。通过 SSH 访问工作区、标签页和窗格，agent 需要你时回应一下，然后放下手机。所有程序都在主机上继续运行。</p>
+      <div class="actions">
+        <a class="button" href="https://dl.bellterm.app/bellterm.apk">下载 APK</a>
+        <span class="fine">需要 Android 10 及以上，支持 arm64 和 x86_64</span>
+      </div>
+    </div>
+
+    <div class="phone" role="img" aria-label="Bellterm 已连接到一个 Herdr 工作区，并弹出 agent 需要输入的通知">
+      <div class="screen" aria-hidden="true">
+        <div class="status"><span>9:41</span><span>5G ▮▮▮</span></div>
+        <div class="bar"><span>☰</span><b>api-server</b><span class="branch">main ↑2</span></div>
+        <div class="tabs">
+          <span><i class="dot work"></i>shell</span>
+          <span class="on"><i class="dot wait"></i>agent</span>
+          <span><i class="dot"></i>logs</span>
+        </div>
+<div class="term"><span class="dim">● Read crates/api/src/routes.rs</span>
+<span class="dim">● Edit 3 files, +48 −12</span>
+
+我把限流器移到了鉴权中间件前面。测试需要数据库，我想运行：
+
+<span class="p">$</span> cargo test --workspace
+
+<span class="q">允许执行这条命令吗？</span>
+  1. 允许
+  2. 允许，且不再询问
+  3. 不允许，告诉我怎么做
+
+<span class="p">›</span> <i class="cursor"></i></div>
+        <div class="keys">
+          <span>Esc</span><span>Tab</span><span class="latched">Ctrl</span><span>Alt</span><span>←</span><span>↓</span><span>↑</span><span>→</span>
+        </div>
+        <div class="note">
+          <img src="/icon.svg" alt="">
+          <b>api-server 需要输入</b>
+          <span>在标签页“agent”中等待</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap points">
+    <div class="point">
+      <h2>原生应用</h2>
+      <p>Kotlin 加 Rust，性能卓著</p>
+    </div>
+    <div class="point">
+      <h2>极简设计</h2>
+      <p>干净UI，零干扰，专注功能</p>
+    </div>
+    <div class="point">
+      <h2>小屏幕友好</h2>
+      <p>扩展按键、侧边栏，掌中玩转</p>
+    </div>
+    <div class="point">
+      <h2>开源</h2>
+      <p>Apache License 2.0</p>
+    </div>
+  </div>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>手机只是一扇窗，会话由 Herdr 掌管。</h2>
+      <p class="intro">Bellterm 不运行你的终端。它像桌面客户端一样连接到你机器上的 Herdr 守护进程，把 Herdr 发来的画面画出来。信号断了、锁屏了、关掉 App 都没关系：窗格和 agent 照常运行，回来时接着看就行。</p>
+      <div class="flow">
+        <div class="end">
+          <h3>Bellterm</h3>
+          <p>用 libghostty-vt 绘制 Herdr 的窗格，发送你的按键和触摸，并把守护进程的 agent 提醒转成 Android 通知。</p>
+        </div>
+        <div class="wire">
+          <svg viewBox="0 0 160 24" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M2 12H158" stroke="#D9A94F" stroke-width="2" stroke-dasharray="6 5" fill="none"/>
+            <circle cx="2" cy="12" r="2" fill="#D9A94F"/><circle cx="158" cy="12" r="2" fill="#D9A94F"/>
+          </svg>
+          <span>SSH，需要时经过跳板机<br><code>herdr remote-client-bridge</code></span>
+        </div>
+        <div class="end host">
+          <h3>你的机器</h3>
+          <p>运行 Herdr 守护进程，保存你的工作区、标签页、窗格和 agent。Bellterm 不会在上面安装、启动或升级任何东西。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>在手机上做你在 Herdr 里做的事。</h2>
+      <p class="intro">按 Herdr 的布局原样显示，再配上手机需要的操作。</p>
+      <div class="cols">
+        <div>
+          <h3>Agent</h3>
+          <ul>
+            <li>侧边栏里显示每个 agent 的状态：<strong>工作中、需要输入、已完成、空闲</strong>。</li>
+            <li>App 在后台时，agent 需要你或任务完成会弹出<strong>通知</strong>。</li>
+            <li><strong>点一下 agent</strong>，直接跳到它的窗格。</li>
+            <li><strong>工作区</strong>显示分支、领先和落后的提交数，以及 worktree。</li>
+          </ul>
+        </div>
+        <div>
+          <h3>终端</h3>
+          <ul>
+            <li><strong>libghostty-vt</strong> 负责字形簇、宽字符和颜色。</li>
+            <li><strong>扩展按键行</strong>：Esc、Tab、可锁定的 Ctrl 和 Alt，以及按住连发的方向键。</li>
+            <li><strong>中文输入</strong>直接在光标处组字，也支持实体键盘。</li>
+            <li><strong>Nerd Font 图标</strong>、十套配色、双指缩放、长按复制。</li>
+          </ul>
+        </div>
+        <div>
+          <h3>SSH</h3>
+          <ul>
+            <li><strong>跳板机</strong>可以像 <code>ssh -J</code> 一样串联，每一跳的主机密钥都会核对。</li>
+            <li><strong>密钥与证书</strong>：在手机上生成 Ed25519 密钥，或导入 RSA、ECDSA、Ed25519 密钥。</li>
+            <li><strong>导入 ~/.ssh/config</strong>：每个 Host 成为一个节点，ProxyJump 也会导入。</li>
+            <li><strong>密钥和密码</strong>用 Android Keystore 中的密钥加密保存。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <h2>开始使用</h2>
+      <p class="intro">你需要一台能通过 SSH 访问、装有 Herdr 0.9.0 或更新版本的机器。</p>
+      <ol class="steps">
+        <li>
+          <div>
+            <h3>安装 Bellterm</h3>
+            <p>在手机上<a href="https://dl.bellterm.app/bellterm.apk">下载 APK</a> 并打开安装。首次启动时，Bellterm 会为这台设备生成一把 Ed25519 密钥。</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>授权手机的密钥</h3>
+            <p>在“密钥与证书”中复制公钥，添加到主机上。也可以改用你的 SSH CA 为它签发证书。</p>
+            <pre>echo 'ssh-ed25519 AAAA… bellterm@Pixel7' &gt;&gt; ~/.ssh/authorized_keys</pre>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>添加节点并连接</h3>
+            <p>把主机添加为节点，或导入你的 SSH 配置。第一次连接时请核对主机密钥指纹。如果这个会话还没有运行 Herdr 服务，在主机上运行 <code>herdr</code> 启动一个。</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>系统要求</h2>
+      <dl class="reqs">
+        <div><dt>手机</dt><dd>Android 10（API 29）或更新版本，arm64 或 x86_64。</dd></div>
+        <div><dt>主机</dt><dd>Herdr 0.9.0 或更新版本，以及 <code>/bin/sh</code>。不支持只提供 PowerShell 的 Windows 主机。</dd></div>
+        <div><dt>跳板机</dt><dd>允许 TCP 转发的 SSH 即可，不需要别的。</dd></div>
+      </dl>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Bellterm 可以配合 Herdr 使用，但与 Herdr 或 herdr.dev 没有任何隶属、背书或支持关系。</p>
+    <p>以 Apache License 2.0 发布。</p>
+  </div>
+</footer>
+</body>
+</html>

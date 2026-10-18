@@ -1,0 +1,35 @@
+Bellterm
+Copyright (c) 2026 Terry Wang
+
+Bellterm is licensed under the Apache License, Version 2.0; the full text is
+in LICENSE at the root of this repository. The parts below keep their own
+copyright and licences.
+
+crates/herdr-client, crates/herdr-protocol, and crates/test-support
+-------------------------------------------------------------------
+Copyright 2026 Fabien Penso and contributors.
+Licensed under the Apache License, Version 2.0; the full text is in
+LICENSE-APACHE in each of those directories. They are taken from Herdr UI,
+https://github.com/penso/herdr-gpui, at revision
+de640abbd7444e8878ed92176e3d6678adb49249. Changes: herdr-client can attach
+through a bridge stream the application connected itself (src/connect.rs,
+src/lib.rs, src/external_bridge.rs, src/external_bridge/); its advice for a
+daemon newer than the client names Bellterm as the app to update
+(src/compat.rs and its tests); their Cargo manifests state their licence
+instead of inheriting it from the workspace; and each directory carries a
+copy of the licence.
+
+Portions of crates/herdr-protocol are adapted from Herdr
+(https://github.com/herdrdev/herdr), also licensed under Apache-2.0. The
+adapted files, the upstream revision they came from, and the modifications
+made to them are recorded in crates/herdr-protocol/NOTICE.md. No upstream
+NOTICE file was present at the revision used.
+
+Fonts
+-----
+The fonts bundled in app/src/main/assets/fonts/ carry their own licences,
+shipped beside them in that directory.
+
+The app shows this notice, the Apache License, and the herdr-protocol
+attribution under Settings > Open source licences; the build copies them into
+the APK's assets.

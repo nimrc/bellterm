@@ -1,0 +1,8 @@
+// bellterm.app: the static site in site/, served as Worker static assets.
+// Deploy with `npx wrangler deploy`.
+{
+  "name": "bellterm",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./site" },
+  "routes": [{ "pattern": "bellterm.app", "custom_domain": true }]
+}

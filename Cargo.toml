@@ -1,0 +1,41 @@
+# The Rust half of Bellterm: the JNI core in `native/` and the Herdr client and
+# protocol crates it builds on (see NOTICE).
+[workspace]
+members  = ["crates/herdr-client", "crates/herdr-protocol", "native"]
+resolver = "2"
+
+[workspace.package]
+edition      = "2024"
+license      = "Apache-2.0"
+publish      = false
+rust-version = "1.96"
+version      = "0.1.0"
+
+[workspace.lints.rust]
+unsafe_code           = "deny"
+unused_qualifications = "deny"
+
+[workspace.lints.clippy]
+expect_used = "deny"
+unwrap_used = "deny"
+
+[workspace.dependencies]
+base64            = "0.23.1"
+bincode           = { default-features = false, features = ["serde", "std"], version = "2" }
+crossbeam-channel = "0.5"
+herdr-client      = { path = "crates/herdr-client" }
+herdr-protocol    = { path = "crates/herdr-protocol" }
+interprocess      = "2.4.2"
+rustix            = { features = ["event", "fs", "process", "pty", "termios"], version = "=1.1.5" }
+serde             = { features = ["derive"], version = "1" }
+serde_json        = "1"
+tempfile          = "3"
+thiserror         = "2"
+tracing           = "0.1"
+windows-sys       = { features = ["Win32_Foundation", "Win32_System_Pipes"], version = "0.61.2" }
+
+[profile.release]
+codegen-units = 1
+lto           = "thin"
+opt-level     = 3
+strip         = "debuginfo"

@@ -18,7 +18,7 @@ base64            = { workspace = true }
 crossbeam-channel = { workspace = true }
 getrandom         = "0.4.3"
 herdr-client      = { workspace = true }
-jni               = { default-features = false, version = "0.21.1" }
+jni               = { default-features = false, version = "0.22.4" }
 # Pinned: the C API is unstable, and this release pins the Ghostty commit
 # (and so the Zig version, 0.15.2) it builds.
 libghostty-vt     = "=0.2.2"

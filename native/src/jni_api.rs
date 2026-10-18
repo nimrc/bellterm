@@ -5,6 +5,10 @@
 //! JNI resolves `Java_…` symbols by their exact names, so each export must be
 //! `#[unsafe(no_mangle)]`; that attribute is the only unsafe code in this
 //! crate, and every function body is safe Rust over the `jni` crate.
+//!
+//! Each body runs inside `EnvUnowned::with_env`, which also catches panics so
+//! none unwinds into the JVM; an `ErrorPolicy` then turns the outcome into the
+//! value Java receives.
 #![allow(unsafe_code)]
 
 use crate::{
@@ -16,11 +20,15 @@ use crate::{
     theme::Theme,
 };
 use jni::{
-    JNIEnv,
-    objects::{JClass, JString},
-    sys::{JNI_FALSE, JNI_TRUE, jboolean, jbyteArray, jint, jlong, jstring},
+    Env, EnvUnowned,
+    errors::ErrorPolicy,
+    jni_str,
+    objects::{JByteArray, JClass, JString, Reference as _},
+    strings::JNIString,
+    sys::{jboolean, jint, jlong},
 };
 use std::{
+    any::Any,
     collections::HashMap,
     sync::{
         Arc, LazyLock, Mutex, PoisonError,
@@ -42,26 +50,75 @@ fn session(id: jlong) -> Result<Arc<Session>> {
         .ok_or(Error::NoSession)
 }
 
-fn string(env: &mut JNIEnv, value: &JString) -> Result<String> {
-    Ok(env.get_string(value)?.into())
+fn string(env: &Env, value: &JString) -> Result<String> {
+    Ok(value.try_to_string(env)?)
 }
 
-fn optional(env: &mut JNIEnv, value: &JString) -> Result<Option<String>> {
+fn optional(env: &Env, value: &JString) -> Result<Option<String>> {
     if value.is_null() {
         return Ok(None);
     }
     string(env, value).map(Some)
 }
 
-fn new_string(env: &mut JNIEnv, value: &str) -> jstring {
-    env.new_string(value)
-        .map(|s| s.into_raw())
-        .unwrap_or(std::ptr::null_mut())
+/// Raise `message` as a Java `IOException` unless one is already pending.
+fn throw(env: &mut Env, message: &str) {
+    if !env.exception_check() {
+        let _ = env.throw_new(jni_str!("java/io/IOException"), JNIString::from(message));
+    }
 }
 
-/// Raise `error` as a Java `IOException`; the caller returns a placeholder.
-fn throw(env: &mut JNIEnv, error: &Error) {
-    let _ = env.throw_new("java/io/IOException", error.to_string());
+/// Errors and panics become a Java `IOException`; Java gets a placeholder
+/// (null, zero or false) alongside it.
+struct ThrowIo;
+
+impl<T: Default> ErrorPolicy<T, Error> for ThrowIo {
+    type Captures<'local: 'call, 'call> = ();
+
+    fn on_error<'local: 'call, 'call>(
+        env: &mut Env<'local>,
+        _: &mut (),
+        error: Error,
+    ) -> jni::errors::Result<T> {
+        throw(env, &error.to_string());
+        Ok(T::default())
+    }
+
+    fn on_panic<'local: 'call, 'call>(
+        env: &mut Env<'local>,
+        _: &mut (),
+        _: Box<dyn Any + Send>,
+    ) -> jni::errors::Result<T> {
+        tracing::error!("native call panicked");
+        throw(env, "native call panicked");
+        Ok(T::default())
+    }
+}
+
+/// Input failures (not yet connected, a full queue) are logged and dropped:
+/// a keystroke is not worth an exception.
+struct DropInput;
+
+impl<T: Default> ErrorPolicy<T, Error> for DropInput {
+    type Captures<'local: 'call, 'call> = ();
+
+    fn on_error<'local: 'call, 'call>(
+        _: &mut Env<'local>,
+        _: &mut (),
+        error: Error,
+    ) -> jni::errors::Result<T> {
+        tracing::debug!(%error, "input not sent");
+        Ok(T::default())
+    }
+
+    fn on_panic<'local: 'call, 'call>(
+        _: &mut Env<'local>,
+        _: &mut (),
+        _: Box<dyn Any + Send>,
+    ) -> jni::errors::Result<T> {
+        tracing::error!("input handler panicked");
+        Ok(T::default())
+    }
 }
 
 fn u16_of(value: jint) -> u16 {
@@ -73,7 +130,10 @@ fn u32_of(value: jint) -> u32 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_init(_env: JNIEnv, _class: JClass) {
+pub extern "system" fn Java_app_bellterm_core_Native_init<'local>(
+    _env: EnvUnowned<'local>,
+    _class: JClass<'local>,
+) {
     #[cfg(target_os = "android")]
     {
         use tracing_subscriber::layer::SubscriberExt as _;
@@ -83,49 +143,41 @@ pub extern "system" fn Java_app_bellterm_core_Native_init(_env: JNIEnv, _class: 
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_generateKey(
-    mut env: JNIEnv,
-    _class: JClass,
-    comment: JString,
-) -> jstring {
-    let result = string(&mut env, &comment).and_then(|comment| keys::generate(&comment));
-    match result {
-        Ok(identity) => new_string(&mut env, &identity.private),
-        Err(error) => {
-            throw(&mut env, &error);
-            std::ptr::null_mut()
-        }
-    }
+pub extern "system" fn Java_app_bellterm_core_Native_generateKey<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
+    comment: JString<'local>,
+) -> JString<'local> {
+    env.with_env(|env| -> Result<_> {
+        let identity = keys::generate(&string(env, &comment)?)?;
+        Ok(env.new_string(&*identity.private)?)
+    })
+    .resolve::<ThrowIo>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_publicKey(
-    mut env: JNIEnv,
-    _class: JClass,
-    private: JString,
-) -> jstring {
-    let result = string(&mut env, &private)
-        .map(Zeroizing::new)
-        .and_then(|private| keys::public_of(&private));
-    match result {
-        Ok(public) => new_string(&mut env, &public),
-        Err(error) => {
-            throw(&mut env, &error);
-            std::ptr::null_mut()
-        }
-    }
+pub extern "system" fn Java_app_bellterm_core_Native_publicKey<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
+    private: JString<'local>,
+) -> JString<'local> {
+    env.with_env(|env| -> Result<_> {
+        let private = Zeroizing::new(string(env, &private)?);
+        Ok(env.new_string(keys::public_of(&private)?)?)
+    })
+    .resolve::<ThrowIo>()
 }
 
 /// Start connecting with the JSON document `config.rs` describes. The text
 /// holds secrets: it is parsed into zeroizing types and not kept.
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_connect(
-    mut env: JNIEnv,
-    _class: JClass,
-    config_json: JString,
+pub extern "system" fn Java_app_bellterm_core_Native_connect<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
+    config_json: JString<'local>,
 ) -> jlong {
-    let result = (|| {
-        let json = Zeroizing::new(string(&mut env, &config_json)?);
+    env.with_env(|env| -> Result<_> {
+        let json = Zeroizing::new(string(env, &config_json)?);
         let session = Session::connect(config::parse(&json)?)?;
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
         SESSIONS
@@ -133,316 +185,295 @@ pub extern "system" fn Java_app_bellterm_core_Native_connect(
             .unwrap_or_else(PoisonError::into_inner)
             .insert(id, Arc::new(session));
         Ok(id)
-    })();
-    result.unwrap_or_else(|error| {
-        throw(&mut env, &error);
-        0
     })
+    .resolve::<ThrowIo>()
 }
 
 /// Import key text; returns `{"private": …, "info": KeyInfo}`, the private
 /// key decrypted for storage.
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_importKey(
-    mut env: JNIEnv,
-    _class: JClass,
-    text: JString,
-    passphrase: JString,
-) -> jstring {
-    let result = (|| {
-        let text = Zeroizing::new(string(&mut env, &text)?);
-        let passphrase = optional(&mut env, &passphrase)?.map(Zeroizing::new);
+pub extern "system" fn Java_app_bellterm_core_Native_importKey<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
+    text: JString<'local>,
+    passphrase: JString<'local>,
+) -> JString<'local> {
+    env.with_env(|env| -> Result<_> {
+        let text = Zeroizing::new(string(env, &text)?);
+        let passphrase = optional(env, &passphrase)?.map(Zeroizing::new);
         let (private, info) = keys::import(&text, passphrase.as_deref().map(String::as_str))?;
-        Ok::<_, Error>(Zeroizing::new(
+        let json = Zeroizing::new(
             serde_json::json!({"private": private.as_str(), "info": info}).to_string(),
-        ))
-    })();
-    match result {
-        Ok(json) => new_string(&mut env, &json),
-        Err(error) => {
-            throw(&mut env, &error);
-            std::ptr::null_mut()
-        }
-    }
+        );
+        Ok(env.new_string(&*json)?)
+    })
+    .resolve::<ThrowIo>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_certificateInfo(
-    mut env: JNIEnv,
-    _class: JClass,
-    certificate: JString,
-    private: JString,
-) -> jstring {
-    let result = (|| {
-        let certificate = string(&mut env, &certificate)?;
-        let private = Zeroizing::new(string(&mut env, &private)?);
-        Ok::<_, Error>(serde_json::to_string(&keys::certificate(
-            &certificate,
-            &private,
-        )?)?)
-    })();
-    match result {
-        Ok(json) => new_string(&mut env, &json),
-        Err(error) => {
-            throw(&mut env, &error);
-            std::ptr::null_mut()
-        }
-    }
+pub extern "system" fn Java_app_bellterm_core_Native_certificateInfo<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
+    certificate: JString<'local>,
+    private: JString<'local>,
+) -> JString<'local> {
+    env.with_env(|env| -> Result<_> {
+        let certificate = string(env, &certificate)?;
+        let private = Zeroizing::new(string(env, &private)?);
+        let json = serde_json::to_string(&keys::certificate(&certificate, &private)?)?;
+        Ok(env.new_string(json)?)
+    })
+    .resolve::<ThrowIo>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_parseSshConfig(
-    mut env: JNIEnv,
-    _class: JClass,
-    text: JString,
-) -> jstring {
-    let result = string(&mut env, &text)
-        .and_then(|text| Ok(serde_json::to_string(&ssh_config::parse(&text))?));
-    match result {
-        Ok(json) => new_string(&mut env, &json),
-        Err(error) => {
-            throw(&mut env, &error);
-            std::ptr::null_mut()
-        }
-    }
+pub extern "system" fn Java_app_bellterm_core_Native_parseSshConfig<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
+    text: JString<'local>,
+) -> JString<'local> {
+    env.with_env(|env| -> Result<_> {
+        let json = serde_json::to_string(&ssh_config::parse(&string(env, &text)?))?;
+        Ok(env.new_string(json)?)
+    })
+    .resolve::<ThrowIo>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_nextEvent(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_nextEvent<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
     timeout_ms: jint,
-) -> jstring {
-    let Ok(session) = session(id) else {
-        return new_string(&mut env, r#"{"type":"closed"}"#);
-    };
-    let timeout = Duration::from_millis(u64::from(u32_of(timeout_ms)));
-    match session.next_event(timeout) {
-        Some(event) => new_string(&mut env, &event.to_json()),
-        None => std::ptr::null_mut(),
-    }
+) -> JString<'local> {
+    env.with_env(|env| -> Result<_> {
+        let Ok(session) = session(id) else {
+            return Ok(env.new_string(r#"{"type":"closed"}"#)?);
+        };
+        let timeout = Duration::from_millis(u64::from(u32_of(timeout_ms)));
+        match session.next_event(timeout) {
+            Some(event) => Ok(env.new_string(event.to_json())?),
+            None => Ok(JString::default()),
+        }
+    })
+    .resolve::<ThrowIo>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_takeFrame(
-    env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_takeFrame<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
-) -> jbyteArray {
-    let Some(frame) = session(id).ok().and_then(|s| s.take_frame()) else {
-        return std::ptr::null_mut();
-    };
-    env.byte_array_from_slice(&frame.pack())
-        .map(|array| array.into_raw())
-        .unwrap_or(std::ptr::null_mut())
+) -> JByteArray<'local> {
+    env.with_env(|env| -> Result<_> {
+        match session(id).ok().and_then(|s| s.take_frame()) {
+            Some(frame) => Ok(env.byte_array_from_slice(&frame.pack())?),
+            None => Ok(JByteArray::default()),
+        }
+    })
+    .resolve::<ThrowIo>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_takeView(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_takeView<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
-) -> jstring {
-    match session(id).ok().and_then(|s| s.take_view()) {
-        Some(view) => new_string(&mut env, &view),
-        None => std::ptr::null_mut(),
-    }
-}
-
-/// Input failures (not yet connected, a full queue) are logged and dropped:
-/// a keystroke is not worth an exception.
-fn input(result: Result<()>) {
-    if let Err(error) = result {
-        tracing::debug!(%error, "input not sent");
-    }
+) -> JString<'local> {
+    env.with_env(|env| -> Result<_> {
+        match session(id).ok().and_then(|s| s.take_view()) {
+            Some(view) => Ok(env.new_string(view)?),
+            None => Ok(JString::default()),
+        }
+    })
+    .resolve::<ThrowIo>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_key(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_key<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
-    pane: JString,
+    pane: JString<'local>,
     key_code: jint,
     meta: jint,
     unicode: jint,
     repeat: jboolean,
 ) -> jboolean {
-    let result = (|| {
-        let pane = optional(&mut env, &pane)?;
+    env.with_env(|env| -> Result<_> {
+        let pane = optional(env, &pane)?;
         let unicode = u32::try_from(unicode)
             .ok()
             .and_then(char::from_u32)
             .filter(|c| *c != '\0');
-        session(id)?.key(pane.as_deref(), key_code, meta, unicode, repeat == JNI_TRUE)
-    })();
-    match result {
-        Ok(true) => JNI_TRUE,
-        Ok(false) => JNI_FALSE,
-        Err(error) => {
-            tracing::debug!(%error, "key not sent");
-            JNI_FALSE
-        }
-    }
+        session(id)?.key(pane.as_deref(), key_code, meta, unicode, repeat)
+    })
+    .resolve::<DropInput>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_chord(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_chord<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
-    pane: JString,
+    pane: JString<'local>,
     codepoint: jint,
     meta: jint,
 ) {
-    input((|| {
-        let pane = optional(&mut env, &pane)?;
+    env.with_env(|env| -> Result<_> {
+        let pane = optional(env, &pane)?;
         let Some(ch) = u32::try_from(codepoint).ok().and_then(char::from_u32) else {
             return Ok(());
         };
         session(id)?.chord(pane.as_deref(), ch, meta)
-    })());
+    })
+    .resolve::<DropInput>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_text(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_text<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
-    pane: JString,
-    text: JString,
+    pane: JString<'local>,
+    text: JString<'local>,
 ) {
-    input((|| {
-        let pane = optional(&mut env, &pane)?;
-        let text = string(&mut env, &text)?;
+    env.with_env(|env| -> Result<_> {
+        let pane = optional(env, &pane)?;
+        let text = string(env, &text)?;
         session(id)?.text_input(pane.as_deref(), &text)
-    })());
+    })
+    .resolve::<DropInput>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_paste(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_paste<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
-    pane: JString,
-    text: JString,
+    pane: JString<'local>,
+    text: JString<'local>,
 ) {
-    input((|| {
-        let pane = optional(&mut env, &pane)?;
-        let text = string(&mut env, &text)?;
+    env.with_env(|env| -> Result<_> {
+        let pane = optional(env, &pane)?;
+        let text = string(env, &text)?;
         session(id)?.paste(pane.as_deref(), &text)
-    })());
+    })
+    .resolve::<DropInput>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_touch(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_touch<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
-    pane: JString,
+    pane: JString<'local>,
     kind: jint,
     column: jint,
     row: jint,
     lines: jint,
 ) {
-    input((|| {
-        let pane = string(&mut env, &pane)?;
+    env.with_env(|env| -> Result<_> {
+        let pane = string(env, &pane)?;
         let kind = match kind {
             1 => Touch::ScrollUp,
             2 => Touch::ScrollDown,
             _ => Touch::Tap,
         };
         session(id)?.touch(&pane, kind, u16_of(column), u16_of(row), u16_of(lines))
-    })());
+    })
+    .resolve::<DropInput>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_resize(
-    _env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_resize<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
     cols: jint,
     rows: jint,
     cell_width: jint,
     cell_height: jint,
 ) {
-    input((|| {
+    env.with_env(|_| -> Result<_> {
         session(id)?.resize(session::options(
             u16_of(cols),
             u16_of(rows),
             u32_of(cell_width),
             u32_of(cell_height),
         ))
-    })());
+    })
+    .resolve::<DropInput>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_request(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_request<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
-    method: JString,
-    params: JString,
-) -> jstring {
-    let result = (|| {
-        let method = string(&mut env, &method)?;
-        let params = serde_json::from_str(&string(&mut env, &params)?)?;
-        session(id)?.request(&method, params)
-    })();
-    match result {
-        Ok(request_id) => new_string(&mut env, &request_id),
-        Err(error) => {
-            throw(&mut env, &error);
-            std::ptr::null_mut()
-        }
-    }
+    method: JString<'local>,
+    params: JString<'local>,
+) -> JString<'local> {
+    env.with_env(|env| -> Result<_> {
+        let method = string(env, &method)?;
+        let params = serde_json::from_str(&string(env, &params)?)?;
+        let request_id = session(id)?.request(&method, params)?;
+        Ok(env.new_string(request_id)?)
+    })
+    .resolve::<ThrowIo>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_setTheme(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_setTheme<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
-    theme_json: JString,
+    theme_json: JString<'local>,
 ) {
-    let result = (|| {
-        let theme: Theme = serde_json::from_str(&string(&mut env, &theme_json)?)?;
-        session(id)?.set_theme(theme);
-        Ok::<_, Error>(())
-    })();
-    if let Err(error) = result {
-        tracing::warn!(%error, "theme not applied");
-    }
+    env.with_env(|env| -> Result<_> {
+        let result = (|| {
+            let theme: Theme = serde_json::from_str(&string(env, &theme_json)?)?;
+            session(id)?.set_theme(theme);
+            Ok::<_, Error>(())
+        })();
+        if let Err(error) = result {
+            tracing::warn!(%error, "theme not applied");
+        }
+        Ok(())
+    })
+    .resolve::<DropInput>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_selectionText(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_selectionText<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
     start_column: jint,
     start_row: jint,
     end_column: jint,
     end_row: jint,
-) -> jstring {
-    let text = session(id)
-        .map(|session| {
-            session.text(
-                (u16_of(start_column), u16_of(start_row)),
-                (u16_of(end_column), u16_of(end_row)),
-            )
-        })
-        .unwrap_or_default();
-    new_string(&mut env, &text)
+) -> JString<'local> {
+    env.with_env(|env| -> Result<_> {
+        let text = session(id)
+            .map(|session| {
+                session.text(
+                    (u16_of(start_column), u16_of(start_row)),
+                    (u16_of(end_column), u16_of(end_row)),
+                )
+            })
+            .unwrap_or_default();
+        Ok(env.new_string(text)?)
+    })
+    .resolve::<ThrowIo>()
 }
 
 /// Drop the session. Its worker stops on its own thread; nothing is joined
 /// here, so the UI thread never waits on the network.
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_app_bellterm_core_Native_disconnect(
-    _env: JNIEnv,
-    _class: JClass,
+pub extern "system" fn Java_app_bellterm_core_Native_disconnect<'local>(
+    _env: EnvUnowned<'local>,
+    _class: JClass<'local>,
     id: jlong,
 ) {
     let session = SESSIONS

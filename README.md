@@ -204,15 +204,23 @@ whenever *Check for updates* is tapped in Settings. When it lists a higher
 `versionCode`, the node list offers the release; *Download* opens its APK in
 the browser. To publish one:
 
-1. Raise `versionCode` and `versionName` in `app/build.gradle.kts`; optionally
-   write release notes to `release-notes/<versionName>.en.txt` and `.zh.txt`.
-2. Push the tag `v<versionName>`. The Release workflow builds the APK with the
-   release key (from the `BELLTERM_*` repository secrets, the keystore
-   base64-encoded as `BELLTERM_KEYSTORE_BASE64`), writes `latest.json`, and
-   attaches both to a GitHub release.
-3. Upload `bellterm-<versionName>.apk` and then `latest.json` to
-   `https://dl.bellterm.app/`, in that order, so the manifest never points at
-   a missing file.
+1. Optionally write release notes to `release-notes/<version>.en.txt` and
+   `.zh.txt` on `main`.
+2. Run the Release workflow from the Actions tab with the version, such as
+   `1.2.0`. It sets `versionName` and `versionCode` (`10200`) in
+   `app/build.gradle.kts`, builds the APK with the release key (from the
+   `BELLTERM_*` repository secrets, the keystore base64-encoded as
+   `BELLTERM_KEYSTORE_BASE64`), writes `latest.json`, pushes the version
+   commit and the tag `v<version>`, and attaches both files to a GitHub
+   release.
+3. The same run uploads `bellterm-<version>.apk`, `bellterm.apk` (the site's
+   download link), and then `latest.json` to the R2 bucket behind
+   `https://dl.bellterm.app/` (secrets `CLOUDFLARE_R2_TOKEN` and
+   `CLOUDFLARE_ACCOUNT_ID`), in that order, so the manifest never points at a
+   missing file.
+
+Pushing a tag `v<versionName>` after raising the version by hand runs the same
+build and upload.
 
 To do it locally instead, build with the release key and run
 `scripts/release-manifest.sh app/build/outputs/apk/release/app-release.apk dist`.

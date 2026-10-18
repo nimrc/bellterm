@@ -1,35 +1,91 @@
 name: Release
 
-# Pushing a tag v<versionName> builds the signed release APK and the update
-# manifest, and attaches both to a GitHub release. Copy the two files from the
-# release to https://dl.bellterm.app/ to publish them; the app's update check
-# reads latest.json there.
+# Builds the signed release APK and the update manifest, attaches both to a
+# GitHub release, and publishes them to https://dl.bellterm.app/ (the R2 bucket
+# below), where the app's update check reads latest.json.
+#
+# Two ways in:
+# - Run the workflow from the Actions tab with a version such as 1.2.0 to cut
+#   a release from main: it sets versionName and versionCode (1.2.0 is 10200)
+#   in app/build.gradle.kts, and once the APK is built, pushes that commit and
+#   the tag v<version>.
+# - Push a tag v<versionName> yourself after raising the version by hand.
 #
 # Secrets: BELLTERM_KEYSTORE_BASE64 (the release keystore, base64-encoded),
-# BELLTERM_KEYSTORE_PASSWORD, BELLTERM_KEY_ALIAS, and BELLTERM_KEY_PASSWORD if
-# it differs from the keystore password. Release notes come from
+# BELLTERM_KEYSTORE_PASSWORD, BELLTERM_KEY_ALIAS, BELLTERM_KEY_PASSWORD if it
+# differs from the keystore password, CLOUDFLARE_R2_TOKEN (a token that can
+# write R2), and CLOUDFLARE_ACCOUNT_ID. Release notes come from
 # release-notes/<versionName>.en.txt and .zh.txt when present.
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to cut from main, such as 1.2.0
+        required: true
+        type: string
 
 permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     name: Signed APK and update manifest
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
     permissions:
       contents: write
     env:
       # Must match app/build.gradle.kts.
       NDK_VERSION: 27.2.12479018
+      R2_BUCKET: bellterm-downloads
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      # versionCode follows the version so every release raises it.
+      - name: Set the version
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          version=$INPUT_VERSION
+          if ! [[ $version =~ ^([0-9]+)\.([0-9]{1,2})\.([0-9]{1,2})$ ]]; then
+            echo "::error::Version must look like 1.2.0, with minor and patch below 100; got '$version'"
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$version" > /dev/null; then
+            echo "::error::Tag v$version already exists"
+            exit 1
+          fi
+          code=$(( BASH_REMATCH[1] * 10000 + 10#${BASH_REMATCH[2]} * 100 + 10#${BASH_REMATCH[3]} ))
+          current=$(sed -nE 's/^ *versionCode = ([0-9]+)$/\1/p' app/build.gradle.kts)
+          if (( code <= current )); then
+            echo "::error::versionCode $code for $version must be above the current $current"
+            exit 1
+          fi
+          sed -i -E "s/^( *versionCode = )[0-9]+$/\1$code/; s/^( *versionName = )\"[^\"]*\"$/\1\"$version\"/" app/build.gradle.kts
+          git diff app/build.gradle.kts
+          echo "TAG=v$version" >> "$GITHUB_ENV"
+
+      - name: Check the tag matches versionName
+        run: |
+          version=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' app/build.gradle.kts)
+          tag=${TAG:-$GITHUB_REF_NAME}
+          if [ "v$version" != "$tag" ]; then
+            echo "tag $tag does not match versionName $version" >&2
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
@@ -52,15 +108,6 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
-      - name: Check the tag matches versionName
-        run: |
-          version=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' app/build.gradle.kts)
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "tag $GITHUB_REF_NAME does not match versionName $version" >&2
-            exit 1
-          fi
-          echo "VERSION=$version" >> "$GITHUB_ENV"
-
       - name: Build the signed APK
         env:
           KEYSTORE_BASE64: ${{ secrets.BELLTERM_KEYSTORE_BASE64 }}
@@ -73,12 +120,44 @@ jobs:
           ./gradlew --console=plain assembleRelease
           rm -f "$BELLTERM_KEYSTORE"
 
+      # The script refuses an APK signed with the debug key.
       - name: Write the update manifest
         run: |
           notes() { [ -f "release-notes/$VERSION.$1.txt" ] && echo "release-notes/$VERSION.$1.txt" || echo ""; }
           scripts/release-manifest.sh app/build/outputs/apk/release/app-release.apk dist "$(notes en)" "$(notes zh)"
+          cat dist/latest.json
+
+      # Only now, with the APK built, does a cut push its commit and tag. The
+      # token is passed here alone, so build scripts never see it.
+      - name: Push the version commit and tag
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(release): $VERSION" app/build.gradle.kts
+          git tag -a "$TAG" -m "Bellterm $VERSION"
+          git push "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" HEAD:main "$TAG"
 
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "Bellterm $VERSION" --notes-file <(cat "release-notes/$VERSION.en.txt" 2>/dev/null || echo "Bellterm $VERSION")
+        run: gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --title "Bellterm $VERSION" --notes-file <(cat "release-notes/$VERSION.en.txt" 2>/dev/null || echo "Bellterm $VERSION")
+
+      # The versioned APK first and latest.json last, so the manifest never
+      # points at a missing file. bellterm.apk is the site's download link.
+      - name: Publish to dl.bellterm.app
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          put() {
+            npx --yes wrangler@4.151.1 r2 object put "$R2_BUCKET/$1" --remote \
+              --file "$2" --content-type "$3" --cache-control "$4"
+          }
+          apk=application/vnd.android.package-archive
+          put "bellterm-$VERSION.apk" "dist/bellterm-$VERSION.apk" "$apk" "public, max-age=31536000, immutable"
+          put bellterm.apk "dist/bellterm-$VERSION.apk" "$apk" "public, max-age=300"
+          put latest.json dist/latest.json application/json "public, max-age=300"

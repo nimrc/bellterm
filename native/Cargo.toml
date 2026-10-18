@@ -29,7 +29,7 @@ thiserror         = { workspace = true }
 tokio             = { features = ["io-util", "net", "rt", "time"], version = "1" }
 tracing           = { workspace = true }
 unicode-width     = "0.2.2"
-zeroize           = { features = ["serde"], version = "=1.9.0" }
+zeroize           = { features = ["serde"], version = "=1.9.1" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 # Routes `tracing` events, including herdr-client's, to logcat.

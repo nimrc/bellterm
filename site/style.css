@@ -56,6 +56,8 @@ h1 {
   background: var(--brass); color: var(--harbor); font-weight: 600; text-decoration: none;
 }
 .button:hover { background: var(--paper); color: var(--harbor); }
+.button.ghost { background: transparent; color: var(--paper); box-shadow: inset 0 0 0 1px var(--line); }
+.button.ghost:hover { box-shadow: inset 0 0 0 1px var(--paper); }
 .fine { color: var(--muted); font-size: .9rem; }
 
 /* Phone */

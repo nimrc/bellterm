@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bellterm — 手机上的 Herdr</title>
-<meta name="description" content="Bellterm 是 Herdr 的原生 Android 客户端。通过 SSH 访问工作区、标签页、窗格和 agent，agent 需要你时收到通知。">
+<title>Bellterm — 手机上的 Herdr，基于 SSH</title>
+<meta name="description" content="Bellterm 是 Herdr 的原生 Android 客户端：通过 SSH 访问工作区、标签页、窗格和 agent，agent 需要输入时收到通知。开源。">
 <meta name="theme-color" content="#13202F">
 <link rel="canonical" href="https://bellterm.app/zh/">
 <link rel="alternate" hreflang="en" href="https://bellterm.app/">
@@ -12,10 +12,42 @@
 <link rel="alternate" hreflang="x-default" href="https://bellterm.app/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta property="og:title" content="Bellterm">
-<meta property="og:description" content="Herdr 的原生 Android 客户端，基于 SSH。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bellterm">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:title" content="Bellterm — 手机上的 Herdr agent">
+<meta property="og:description" content="Herdr 的原生 Android 客户端，基于 SSH。访问工作区、标签页和窗格，agent 需要你时收到通知。">
 <meta property="og:url" content="https://bellterm.app/zh/">
-<meta property="og:image" content="https://bellterm.app/apple-touch-icon.png">
+<meta property="og:image" content="https://bellterm.app/og-zh.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Bellterm：手机上的 Herdr agent">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Bellterm",
+  "url": "https://bellterm.app/zh/",
+  "description": "Bellterm 是 Herdr 的原生 Android 客户端：通过 SSH 访问工作区、标签页、窗格和 agent，agent 需要输入时收到通知。开源。",
+  "inLanguage": "zh-CN",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Android 10+",
+  "downloadUrl": "https://dl.bellterm.app/bellterm.apk",
+  "image": "https://bellterm.app/og-zh.png",
+  "license": "https://www.apache.org/licenses/LICENSE-2.0",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "sameAs": [
+    "https://github.com/nimrc/bellterm"
+  ]
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -28,6 +60,7 @@
     <a href="#how">工作原理</a>
     <a href="#features">功能</a>
     <a href="#start">开始使用</a>
+    <a href="https://github.com/nimrc/bellterm">GitHub</a>
     <a href="/" hreflang="en" lang="en">English</a>
   </nav>
 </header>
@@ -39,6 +72,7 @@
       <p class="lede">Bellterm 是 <a href="https://herdr.dev/">Herdr</a> 的原生 Android 客户端。通过 SSH 访问工作区、标签页和窗格，agent 需要你时回应一下，然后放下手机。所有程序都在主机上继续运行。</p>
       <div class="actions">
         <a class="button" href="https://dl.bellterm.app/bellterm.apk">下载 APK</a>
+        <a class="button ghost" href="https://github.com/nimrc/bellterm">在 GitHub 查看</a>
         <span class="fine">需要 Android 10 及以上，支持 arm64 和 x86_64</span>
       </div>
     </div>
@@ -92,7 +126,7 @@
     </div>
     <div class="point">
       <h2>开源</h2>
-      <p>Apache License 2.0</p>
+      <p>Apache License 2.0，<a href="https://github.com/nimrc/bellterm">源码在 GitHub</a></p>
     </div>
   </div>
 
@@ -199,7 +233,7 @@
 <footer>
   <div class="wrap">
     <p>Bellterm 可以配合 Herdr 使用，但与 Herdr 或 herdr.dev 没有任何隶属、背书或支持关系。</p>
-    <p>以 Apache License 2.0 发布。</p>
+    <p>以 Apache License 2.0 发布，<a href="https://github.com/nimrc/bellterm">源码在 GitHub</a>。</p>
   </div>
 </footer>
 </body>

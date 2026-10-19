@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bellterm — Herdr on Android</title>
-<meta name="description" content="Bellterm is a native Android client for Herdr. Reach your workspaces, tabs, panes, and agents over SSH, and get a notification when an agent needs you.">
+<title>Bellterm — Herdr on Android, over SSH</title>
+<meta name="description" content="A native Android client for Herdr: reach workspaces, tabs, panes, and agents over SSH, and get notified when an agent needs input. Open source.">
 <meta name="theme-color" content="#13202F">
 <link rel="canonical" href="https://bellterm.app/">
 <link rel="alternate" hreflang="en" href="https://bellterm.app/">
@@ -12,10 +12,42 @@
 <link rel="alternate" hreflang="x-default" href="https://bellterm.app/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta property="og:title" content="Bellterm">
-<meta property="og:description" content="A native Android client for Herdr, over SSH.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bellterm">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:title" content="Bellterm — Your Herdr agents, on your phone">
+<meta property="og:description" content="A native Android client for Herdr over SSH. Reach workspaces, tabs, and panes, and get notified when an agent needs you.">
 <meta property="og:url" content="https://bellterm.app/">
-<meta property="og:image" content="https://bellterm.app/apple-touch-icon.png">
+<meta property="og:image" content="https://bellterm.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Bellterm: your Herdr agents, on your phone.">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Bellterm",
+  "url": "https://bellterm.app/",
+  "description": "A native Android client for Herdr: reach workspaces, tabs, panes, and agents over SSH, and get notified when an agent needs input. Open source.",
+  "inLanguage": "en",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Android 10+",
+  "downloadUrl": "https://dl.bellterm.app/bellterm.apk",
+  "image": "https://bellterm.app/og.png",
+  "license": "https://www.apache.org/licenses/LICENSE-2.0",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "sameAs": [
+    "https://github.com/nimrc/bellterm"
+  ]
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -28,6 +60,7 @@
     <a href="#how">How it works</a>
     <a href="#features">Features</a>
     <a href="#start">Get started</a>
+    <a href="https://github.com/nimrc/bellterm">GitHub</a>
     <a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a>
   </nav>
 </header>
@@ -39,6 +72,7 @@
       <p class="lede">Bellterm is a native Android client for <a href="https://herdr.dev/">Herdr</a>. Reach its workspaces, tabs, and panes over SSH, answer an agent when it rings, and put the phone away. Everything keeps running on the host.</p>
       <div class="actions">
         <a class="button" href="https://dl.bellterm.app/bellterm.apk">Download the APK</a>
+        <a class="button ghost" href="https://github.com/nimrc/bellterm">View on GitHub</a>
         <span class="fine">Android 10 or newer, arm64 and x86_64</span>
       </div>
     </div>
@@ -92,7 +126,7 @@ I've moved the rate limiter in front of the auth middleware. The tests need a da
     </div>
     <div class="point">
       <h2>Open source</h2>
-      <p>Apache License 2.0</p>
+      <p>Apache License 2.0, <a href="https://github.com/nimrc/bellterm">source on GitHub</a></p>
     </div>
   </div>
 
@@ -199,7 +233,7 @@ I've moved the rate limiter in front of the auth middleware. The tests need a da
 <footer>
   <div class="wrap">
     <p>Bellterm works with Herdr but is not affiliated with, endorsed by, or supported by Herdr or herdr.dev.</p>
-    <p>Released under the Apache License 2.0.</p>
+    <p>Released under the Apache License 2.0. <a href="https://github.com/nimrc/bellterm">Source on GitHub</a>.</p>
   </div>
 </footer>
 </body>

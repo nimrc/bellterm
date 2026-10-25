@@ -10,9 +10,10 @@ out="$root/bellterm-ios/Generated"
 # Must match GHOSTTY_COMMIT in the build.rs of the libghostty-vt-sys that
 # Cargo.lock pins (0.2.2).
 ghostty_commit=a887df42c56f6de86c0fe6da9c4eeca37931e083
-targets=(aarch64-apple-ios:aarch64-ios aarch64-apple-ios-sim:aarch64-ios-simulator)
+# Rust target : slice of Ghostty's libghostty-vt xcframework
+targets=(aarch64-apple-ios:ios-arm64 aarch64-apple-ios-sim:ios-arm64-simulator)
 
-# Zig 0.15.2 cannot read the macOS 26.4+ SDK's libSystem stubs, so hide the
+# Zig 0.15.2 cannot read current macOS SDKs' libSystem stubs, so hide the
 # macOS SDK from it: its build runner then links against Zig's bundled stubs.
 # The iOS SDK queries still reach the real xcrun.
 shim="$work/xcrun-shim"
@@ -33,16 +34,38 @@ if [ "$(git -C "$ghostty" rev-parse HEAD 2>/dev/null)" != "$ghostty_commit" ]; t
   git -C "$ghostty" checkout -q FETCH_HEAD
 fi
 
+# A native macOS build with the xcframework enabled also builds iOS device and
+# simulator static libraries. Cross-compiling instead would link an iOS dylib
+# against SDK stubs Zig 0.15.2 cannot read.
+vt="$work/libghostty-vt"
+(cd "$ghostty" && zig build \
+  -Demit-lib-vt=true -Demit-xcframework=true -Doptimize=ReleaseFast \
+  -Dapp-runtime=none --prefix "$vt")
+xcframework="$vt/lib/ghostty-vt.xcframework"
+
 libraries=()
 for pair in "${targets[@]}"; do
   rust_target=${pair%%:*}
-  zig_target=${pair##*:}
-  prefix="$work/libghostty-vt-$zig_target"
-  # The flags libghostty-vt-sys passes for its own vendored build.
-  (cd "$ghostty" && zig build \
-    -Demit-lib-vt=true -Doptimize=ReleaseFast -Dcpu=baseline \
-    -Demit-xcframework=false -Dapp-runtime=none \
-    -Dtarget="$zig_target" --prefix "$prefix")
+  slice=${pair##*:}
+  archive=$(find "$xcframework/$slice" -name '*.a' | head -1)
+  if [ -z "$archive" ]; then
+    echo "no $slice archive in $xcframework:" >&2
+    find "$xcframework" >&2
+    exit 1
+  fi
+  # libghostty-vt-sys links `static=ghostty-vt` from the .pc's directory.
+  prefix="$work/libghostty-vt-$rust_target"
+  rm -rf "$prefix"
+  mkdir -p "$prefix/lib" "$prefix/share/pkgconfig"
+  cp "$archive" "$prefix/lib/libghostty-vt.a"
+  cat > "$prefix/share/pkgconfig/libghostty-vt-static.pc" <<PC
+prefix=$prefix
+Name: libghostty-vt-static
+Description: Ghostty VT library (static, $slice)
+Version: 0
+Cflags: -I$ghostty/include
+Libs: \${prefix}/lib/libghostty-vt.a
+PC
   PKG_CONFIG_ALLOW_CROSS=1 PKG_CONFIG_PATH="$prefix/share/pkgconfig" \
     cargo build --locked --release -p bellterm-ffi --target "$rust_target"
   libraries+=("$root/target/$rust_target/release/libbellterm_ffi.a")

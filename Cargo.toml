@@ -1,7 +1,7 @@
 # The Rust half of Bellterm: the JNI core in `native/` and the Herdr client and
 # protocol crates it builds on (see NOTICE).
 [workspace]
-members  = ["crates/herdr-client", "crates/herdr-protocol", "native"]
+members  = ["bellterm-ios/rust", "crates/herdr-client", "crates/herdr-protocol", "native"]
 resolver = "2"
 
 [workspace.package]

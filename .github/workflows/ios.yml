@@ -1,0 +1,79 @@
+name: iOS
+
+on:
+  push:
+    branches: [main, 'feat/ios**']
+    paths:
+      - bellterm-ios/**
+      - native/**
+      - crates/**
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+      - .github/workflows/ios.yml
+  pull_request:
+    paths:
+      - bellterm-ios/**
+      - native/**
+      - crates/**
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+      - .github/workflows/ios.yml
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    name: Rust core, Swift tests, simulator app
+    # Zig 0.15.2, which libghostty-vt needs, cannot link on macOS 27 hosts.
+    runs-on: macos-26
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: 0.15.2
+
+      - name: Select the newest Xcode
+        run: |
+          xcode=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          echo "Using $xcode"
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+
+      - name: Install Rust, XcodeGen, and pkg-config
+        run: |
+          rustup toolchain install
+          brew install xcodegen pkgconf
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+
+      - name: Rust core
+        run: bellterm-ios/scripts/build-core.sh
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bellterm-ios-core
+          path: bellterm-ios/Generated
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Swift tests
+        working-directory: bellterm-ios
+        run: |
+          xcodegen
+          destination=$(xcrun simctl list devices available -j \
+            | python3 -c 'import json,sys; d=[x for r in json.load(sys.stdin)["devices"].values() for x in r if x["name"].startswith("iPhone")]; print(d[-1]["udid"])')
+          xcodebuild test -project Bellterm.xcodeproj -scheme Bellterm \
+            -destination "id=$destination" CODE_SIGNING_ALLOWED=NO

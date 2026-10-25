@@ -1,0 +1,37 @@
+[package]
+description            = "Bellterm's iOS core: the native crate exposed to Swift through UniFFI"
+edition.workspace      = true
+license.workspace      = true
+name                   = "bellterm-ffi"
+publish.workspace      = true
+rust-version.workspace = true
+version.workspace      = true
+
+[lib]
+crate-type = ["lib", "staticlib"]
+name       = "bellterm_ffi"
+
+[[bin]]
+name              = "uniffi-bindgen"
+required-features = ["bindgen"]
+
+[features]
+bindgen = ["uniffi/cli"]
+
+[lints]
+workspace = true
+
+[dependencies]
+bellterm   = { path = "../../native" }
+serde_json = { workspace = true }
+thiserror  = { workspace = true }
+tracing    = { workspace = true }
+uniffi     = "0.32.2"
+zeroize    = "=1.9.1"
+
+[target.'cfg(target_os = "ios")'.dependencies]
+# libghostty-vt-sys has no iOS Zig target, so iOS links a libghostty-vt that
+# scripts/build-core.sh builds and points pkg-config at.
+libghostty-vt-sys  = { features = ["pkg-config"], version = "=0.2.2" }
+tracing-oslog      = "0.3"
+tracing-subscriber = { default-features = false, features = ["registry", "std"], version = "0.3" }

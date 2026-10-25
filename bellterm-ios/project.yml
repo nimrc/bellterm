@@ -1,0 +1,51 @@
+# XcodeGen spec; `just ios-project` generates Bellterm.xcodeproj from it.
+name: Bellterm
+options:
+  bundleIdPrefix: app.bellterm
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  Bellterm:
+    type: application
+    platform: iOS
+    sources:
+      - Bellterm
+      - path: Generated/Swift
+        group: Generated
+      - path: ../app/src/main/assets/fonts
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - framework: Generated/BelltermCore.xcframework
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.bellterm
+        TARGETED_DEVICE_FAMILY: "1,2"
+        # libghostty-vt bundles C++ (simdutf).
+        OTHER_LDFLAGS: -lc++
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortraitUpsideDown
+        INFOPLIST_KEY_CFBundleDisplayName: Bellterm
+  BelltermTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [BelltermTests]
+    dependencies:
+      - target: Bellterm
+schemes:
+  Bellterm:
+    build:
+      targets:
+        Bellterm: all
+        BelltermTests: [test]
+    test:
+      targets: [BelltermTests]

@@ -12,6 +12,19 @@ out="$root/bellterm-ios/Generated"
 ghostty_commit=a887df42c56f6de86c0fe6da9c4eeca37931e083
 targets=(aarch64-apple-ios:aarch64-ios aarch64-apple-ios-sim:aarch64-ios-simulator)
 
+# Zig 0.15.2 cannot read the macOS 26.4+ SDK's libSystem stubs, so hide the
+# macOS SDK from it: its build runner then links against Zig's bundled stubs.
+# The iOS SDK queries still reach the real xcrun.
+shim="$work/xcrun-shim"
+mkdir -p "$shim"
+cat > "$shim/xcrun" <<'EOF'
+#!/bin/sh
+[ "$1 $2" = "--sdk macosx" ] && exit 1
+exec /usr/bin/xcrun "$@"
+EOF
+chmod +x "$shim/xcrun"
+export PATH="$shim:$PATH"
+
 ghostty="$work/ghostty"
 if [ "$(git -C "$ghostty" rev-parse HEAD 2>/dev/null)" != "$ghostty_commit" ]; then
   rm -rf "$ghostty"

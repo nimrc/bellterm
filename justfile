@@ -13,7 +13,6 @@ format:
     cargo fmt --all
 
 # The iOS Rust core as bellterm-ios/Generated: xcframework plus Swift bindings.
-# Needs a macOS 26 host: Zig 0.15.2 cannot link on macOS 27.
 ios-core:
     bellterm-ios/scripts/build-core.sh
 

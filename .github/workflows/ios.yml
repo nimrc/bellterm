@@ -31,7 +31,6 @@ concurrency:
 jobs:
   ios:
     name: Rust core, Swift tests, simulator app
-    # Zig 0.15.2, which libghostty-vt needs, cannot link on macOS 27 hosts.
     runs-on: macos-26
     timeout-minutes: 60
     permissions:

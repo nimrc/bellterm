@@ -29,8 +29,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ios:
-    name: Rust core, Swift tests, simulator app
+  core:
+    name: Rust core
     runs-on: macos-26
     timeout-minutes: 60
     permissions:
@@ -44,21 +44,18 @@ jobs:
         with:
           version: 0.15.2
 
-      - name: Select the newest Xcode
-        run: |
-          xcode=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
-          echo "Using $xcode"
-          sudo xcode-select -s "$xcode"
-          xcodebuild -version
+      # Zig 0.15.2 cannot link against the libSystem stubs of later SDKs.
+      - name: Select Xcode 26.0
+        run: sudo xcode-select -s /Applications/Xcode_26.0.1.app
 
-      - name: Install Rust, XcodeGen, and pkg-config
+      - name: Install Rust and pkg-config
         run: |
           rustup toolchain install
-          brew install xcodegen pkgconf
+          brew install pkgconf
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
 
-      - name: Rust core
+      - name: Build
         run: bellterm-ios/scripts/build-core.sh
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -68,11 +65,38 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Swift tests
+  app:
+    name: Swift tests
+    needs: core
+    # iPhone Duo needs the iOS 27.1 SDK.
+    runs-on: xcode-27
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bellterm-ios-core
+          path: bellterm-ios/Generated
+
+      - name: Select Xcode 27.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app
+          xcodebuild -version
+          brew install xcodegen
+
+      - name: Test
         working-directory: bellterm-ios
         run: |
           xcodegen
-          destination=$(xcrun simctl list devices available -j \
-            | python3 -c 'import json,sys; d=[x for r in json.load(sys.stdin)["devices"].values() for x in r if x["name"].startswith("iPhone")]; print(d[-1]["udid"])')
+          destination=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          phones = [d for r in json.load(sys.stdin)["devices"].values() for d in r if d["name"].startswith("iPhone")]
+          duo = [d for d in phones if "Duo" in d["name"]]
+          print((duo or phones)[-1]["udid"])')
           xcodebuild test -project Bellterm.xcodeproj -scheme Bellterm \
             -destination "id=$destination" CODE_SIGNING_ALLOWED=NO

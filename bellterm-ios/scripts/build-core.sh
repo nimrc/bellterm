@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Builds the Rust core for iOS devices and the simulator into
 # bellterm-ios/Generated: BelltermCore.xcframework and its UniFFI Swift
-# bindings. Needs Xcode, Zig 0.15.2, and pkg-config.
+# bindings. Needs Zig 0.15.2, pkg-config, and an Xcode whose SDKs Zig 0.15.2
+# can link against: it cannot read the libSystem stubs of macOS SDK 26.5 and
+# later, so CI selects Xcode 26.0 on a macOS 26 runner.
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
@@ -12,19 +14,6 @@ out="$root/bellterm-ios/Generated"
 ghostty_commit=a887df42c56f6de86c0fe6da9c4eeca37931e083
 # Rust target : slice of Ghostty's libghostty-vt xcframework
 targets=(aarch64-apple-ios:ios-arm64 aarch64-apple-ios-sim:ios-arm64-simulator)
-
-# Zig 0.15.2 cannot read current macOS SDKs' libSystem stubs, so hide the
-# macOS SDK from it: its build runner then links against Zig's bundled stubs.
-# The iOS SDK queries still reach the real xcrun.
-shim="$work/xcrun-shim"
-mkdir -p "$shim"
-cat > "$shim/xcrun" <<'EOF'
-#!/bin/sh
-[ "$1 $2" = "--sdk macosx" ] && exit 1
-exec /usr/bin/xcrun "$@"
-EOF
-chmod +x "$shim/xcrun"
-export PATH="$shim:$PATH"
 
 ghostty="$work/ghostty"
 if [ "$(git -C "$ghostty" rev-parse HEAD 2>/dev/null)" != "$ghostty_commit" ]; then

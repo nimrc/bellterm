@@ -40,11 +40,16 @@ struct ExtraKeysRow: View {
     @Binding var latched: Int32
     let onKey: (Int32, Bool) -> Void
     let onText: (String) -> Void
+    let onToggleKeyboard: () -> Void
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             GlassEffectContainer(spacing: 6) {
                 HStack(spacing: 6) {
+                    Button("Keyboard", systemImage: "keyboard.chevron.compact.down", action: onToggleKeyboard)
+                        .labelStyle(.iconOnly)
+                        .frame(minHeight: 28)
+                        .buttonStyle(.glass)
                     ForEach(keys, id: \.self) { key in
                         button(for: key)
                     }

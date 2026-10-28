@@ -169,7 +169,8 @@ struct SessionScreen: View {
         ExtraKeysRow(
             latched: $latched,
             onKey: { code, repeats in keys.key(code, repeat: repeats) },
-            onText: { connection.text(pane: pane, $0) }
+            onText: { connection.text(pane: pane, $0) },
+            onToggleKeyboard: keys.toggleKeyboard
         )
     }
 

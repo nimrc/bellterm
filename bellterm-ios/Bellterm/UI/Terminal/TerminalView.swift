@@ -93,5 +93,8 @@ final class ExtraKeySender {
 
     func showKeyboard() { view?.becomeFirstResponder() }
 
-    func hideKeyboard() { view?.resignFirstResponder() }
+    func toggleKeyboard() {
+        guard let view else { return }
+        if view.isFirstResponder { view.resignFirstResponder() } else { view.becomeFirstResponder() }
+    }
 }

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F6D58E"/>
+      <stop offset="0.55" stop-color="#D89B2E"/>
+      <stop offset="1" stop-color="#A86C14"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(512 512) scale(0.92) translate(-512 -536)">
+  <circle cx="512" cy="262" r="46" fill="url(#brass)"/>
+  <path fill="url(#brass)" d="M512 286C392 286 322 380 322 500V606C322 650 300 684 262 718C240 738 252 774 284 774H740C772 774 784 738 762 718C724 684 702 650 702 606V500C702 380 632 286 512 286Z"/>
+  </g>
+</svg>

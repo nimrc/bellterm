@@ -50,6 +50,8 @@ struct SessionScreen: View {
                 node: node,
                 view: connection?.view,
                 onWorkspace: { connection?.focusWorkspace($0.id); column = .detail },
+                onRenameWorkspace: { ask(.renameWorkspace(id: $0.id, label: $0.label)) },
+                onCloseWorkspace: { ask(.closeWorkspace(id: $0.id, label: $0.label)) },
                 onAgent: { connection?.focusPane($0.pane); column = .detail },
                 onNewWorkspace: { connection?.newWorkspace(source: connection?.view?.workspace?.id); column = .detail }
             )
@@ -93,7 +95,7 @@ struct SessionScreen: View {
                     selected: tab?.id,
                     accent: NodeColors.of(node.color),
                     onSelect: { connection.focusTab($0.id) },
-                    onNew: { prompt = .newTab(workspace: workspace.id) }
+                    onNew: { ask(.newTab(workspace: workspace.id)) }
                 )
             }
             // Laptop posture on iPhone Duo: the terminal fills the upper half
@@ -152,7 +154,7 @@ struct SessionScreen: View {
             ToolbarItem(placement: .topBarTrailing) {
                 SessionMenu(
                     connection: connection, workspace: workspace, tab: tab, pane: focusedPane,
-                    onPrompt: { prompt = $0 },
+                    onPrompt: ask,
                     onPaste: { if let text = UIPasteboard.general.string { connection.paste(pane: focusedPane, text) } },
                     onDisconnect: { app.disconnect(node.id); onLeave() }
                 )
@@ -217,6 +219,15 @@ struct SessionScreen: View {
     }
 
     // MARK: Prompts
+
+    /// Opens a prompt, with a rename's field starting from the current name.
+    private func ask(_ next: Prompt) {
+        switch next {
+        case .renameTab(_, let label), .renameWorkspace(_, let label): promptText = label
+        default: promptText = ""
+        }
+        prompt = next
+    }
 
     private var isPrompting: Binding<Bool> {
         Binding(get: { prompt != nil }, set: { if !$0 { prompt = nil } })

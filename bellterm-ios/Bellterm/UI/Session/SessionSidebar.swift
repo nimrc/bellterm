@@ -6,6 +6,8 @@ struct SessionSidebar: View {
     let node: Node
     let view: ShellView?
     let onWorkspace: (Workspace) -> Void
+    let onRenameWorkspace: (Workspace) -> Void
+    let onCloseWorkspace: (Workspace) -> Void
     let onAgent: (Agent) -> Void
     let onNewWorkspace: () -> Void
 
@@ -38,6 +40,10 @@ struct SessionSidebar: View {
                         }
                     }
                     .listRowBackground(workspace.focused ? Color.accentColor.opacity(0.15) : nil)
+                    .contextMenu {
+                        Button("Rename workspace", systemImage: "pencil") { onRenameWorkspace(workspace) }
+                        Button("Close workspace", systemImage: "xmark.square", role: .destructive) { onCloseWorkspace(workspace) }
+                    }
                 }
                 Button(action: onNewWorkspace) { Label("New workspace", systemImage: "plus") }
             }

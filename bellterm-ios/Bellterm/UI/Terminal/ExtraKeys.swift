@@ -42,16 +42,17 @@ struct ExtraKeysRow: View {
     let onText: (String) -> Void
     let onToggleKeyboard: () -> Void
 
+    @State private var repeatTask: Task<Void, Never>?
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             GlassEffectContainer(spacing: 6) {
                 HStack(spacing: 6) {
-                    Button("Keyboard", systemImage: "keyboard.chevron.compact.down", action: onToggleKeyboard)
-                        .labelStyle(.iconOnly)
-                        .frame(minHeight: 28)
-                        .buttonStyle(.glass)
+                    keyCap { Image(systemName: "keyboard.chevron.compact.down") }
+                        .accessibilityLabel(Text("Keyboard"))
+                        .onTapGesture(perform: onToggleKeyboard)
                     ForEach(keys, id: \.self) { key in
-                        button(for: key)
+                        cap(for: key)
                     }
                 }
                 .padding(.horizontal, 8)
@@ -61,36 +62,39 @@ struct ExtraKeysRow: View {
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
     }
 
-    @ViewBuilder
-    private func button(for key: ExtraKey) -> some View {
-        let active = if case .modifier(_, let meta) = key { latched & meta != 0 } else { false }
-        let label = Text(key.label)
-            .font(.system(size: 14, weight: active ? .bold : .medium, design: .monospaced))
-            .frame(minWidth: 28, minHeight: 28)
-            .padding(.horizontal, 6)
-        switch key {
-        case .key(_, let code, let repeats) where repeats:
-            label
-                .glassEffect(.regular.interactive(), in: .capsule)
-                .onLongPressGesture(minimumDuration: 0.4) {} onPressingChanged: { pressing in
-                    pressing ? startRepeat(code) : stopRepeat()
-                }
-        case .key(_, let code, _):
-            Button { onKey(code, false) } label: { label }
-                .buttonStyle(.glass)
-        case .text(_, let text):
-            Button { onText(text) } label: { label }
-                .buttonStyle(.glass)
-        case .modifier(_, let meta):
-            Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                latched ^= meta
-            } label: { label }
-                .buttonStyle(active ? AnyPrimitiveButtonStyle(.glassProminent) : AnyPrimitiveButtonStyle(.glass))
-        }
+    /// Every key is the same capsule: one height, one minimum width, one font.
+    private func keyCap(active: Bool = false, @ViewBuilder _ content: () -> some View) -> some View {
+        content()
+            .font(.system(size: 15, weight: active ? .semibold : .regular, design: .monospaced))
+            .foregroundStyle(active ? Color.white : Color.primary)
+            .frame(minWidth: 30, minHeight: 36)
+            .padding(.horizontal, 7)
+            .contentShape(.capsule)
+            .glassEffect(active ? .regular.tint(.accentColor).interactive() : .regular.interactive(), in: .capsule)
     }
 
-    @State private var repeatTask: Task<Void, Never>?
+    @ViewBuilder
+    private func cap(for key: ExtraKey) -> some View {
+        switch key {
+        case .key(let label, let code, let repeats):
+            let cap = keyCap { Text(label) }
+            if repeats {
+                cap.onLongPressGesture(minimumDuration: 0.4) {} onPressingChanged: { pressing in
+                    pressing ? startRepeat(code) : stopRepeat()
+                }
+            } else {
+                cap.onTapGesture { onKey(code, false) }
+            }
+        case .text(let label, let text):
+            keyCap { Text(label) }.onTapGesture { onText(text) }
+        case .modifier(let label, let meta):
+            keyCap(active: latched & meta != 0) { Text(label) }
+                .onTapGesture {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    latched ^= meta
+                }
+        }
+    }
 
     private func startRepeat(_ code: Int32) {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -109,15 +113,4 @@ struct ExtraKeysRow: View {
         repeatTask?.cancel()
         repeatTask = nil
     }
-}
-
-/// Lets one call site pick between two primitive button styles.
-struct AnyPrimitiveButtonStyle: PrimitiveButtonStyle {
-    private let make: (Configuration) -> AnyView
-
-    init<S: PrimitiveButtonStyle>(_ style: S) {
-        make = { AnyView(style.makeBody(configuration: $0)) }
-    }
-
-    func makeBody(configuration: Configuration) -> some View { make(configuration) }
 }

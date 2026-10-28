@@ -24,7 +24,7 @@ targets:
       - Bellterm
       - path: Generated/Swift
         group: Generated
-      - path: ../app/src/main/assets/fonts
+      - path: Generated/fonts
         type: folder
         buildPhase: resources
     dependencies:

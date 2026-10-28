@@ -89,16 +89,6 @@
         }
       }
     },
-    "%@ to download" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "需下载 %@"
-          }
-        }
-      }
-    },
     "%lld" : {
       "localizations" : {
         "zh-Hans" : {
@@ -501,26 +491,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已完成"
-          }
-        }
-      }
-    },
-    "Download" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "下载"
-          }
-        }
-      }
-    },
-    "Downloaded from the nerd-fonts v3.5.1 release; each file is checked against a pinned size and SHA-256." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "从 nerd-fonts v3.5.1 发布版下载；每个文件都会核对固定的大小和 SHA-256。"
           }
         }
       }
@@ -1421,16 +1391,6 @@
         }
       }
     },
-    "Some styles not downloaded" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "部分字形未下载"
-          }
-        }
-      }
-    },
     "Split down" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1497,26 +1457,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "该文件不是字体。"
-          }
-        }
-      }
-    },
-    "The download failed." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "下载失败。"
-          }
-        }
-      }
-    },
-    "The downloaded font did not match its checksum." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "下载的字体与校验值不符。"
           }
         }
       }

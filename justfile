@@ -16,8 +16,12 @@ format:
 ios-core:
     bellterm-ios/scripts/build-core.sh
 
+# The fonts the iOS app bundles, checksummed, into bellterm-ios/Generated/fonts.
+ios-fonts:
+    bellterm-ios/scripts/fetch-fonts.sh
+
 # The Xcode project from bellterm-ios/project.yml.
-ios-project:
+ios-project: ios-fonts
     cd bellterm-ios && xcodegen
 
 # Swift tests on the newest iPhone simulator; needs bellterm-ios/Generated.

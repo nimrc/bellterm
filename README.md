@@ -19,6 +19,9 @@ the terminal; partly folded like a laptop, the terminal fills the upper half
 and the keyboard the lower. iOS suspends apps in the background, so the iOS app
 closes attachments there and reattaches on return; Herdr keeps everything
 running meanwhile, but agent notifications only arrive while the app is open.
+The iOS app bundles JetBrains Mono, Source Code Pro, and Ubuntu Mono Nerd Font
+Mono in every style, so it never downloads fonts; `just ios-fonts` gathers them
+at build time, each checked against a pinned SHA-256.
 
 ## What it does
 
@@ -212,7 +215,7 @@ targets, and Zig 0.15.2.
 
 ```sh
 just ios-core     # bellterm-ios/Generated: the Rust core as an xcframework, and its Swift bindings
-just ios-project  # bellterm-ios/Bellterm.xcodeproj from project.yml
+just ios-project  # fetches the bundled fonts, then bellterm-ios/Bellterm.xcodeproj from project.yml
 just ios-test     # Swift tests on an iPhone simulator
 ```
 
@@ -283,7 +286,7 @@ with it (point the target's `TrustedUserCAKeys` at the CA and its
   generated. FIDO/security-key (`sk-`) keys and SSH agents are not supported.
 - `Match` and `Include` in imported SSH configuration are not evaluated.
 - On iOS, attachments close while the app is in the background, so agent
-  notifications do not arrive then; only the bundled font is offered so far.
+  notifications do not arrive then.
 
 ## License
 

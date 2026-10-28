@@ -92,6 +92,7 @@ jobs:
       - name: Test
         working-directory: bellterm-ios
         run: |
+          scripts/fetch-fonts.sh
           xcodegen
           destination=$(xcrun simctl list devices available -j | python3 -c '
           import json, sys

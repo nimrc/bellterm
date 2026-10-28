@@ -4,14 +4,12 @@ import Testing
 @testable import Bellterm
 
 struct FontCatalogTests {
-    @Test func everyDownloadIsPinned() {
+    @Test func everyCatalogueFileShipsInTheApp() {
         #expect(Set(FontCatalog.fonts.map(\.id)).count == FontCatalog.fonts.count)
         for font in FontCatalog.fonts {
-            #expect(font.files.contains { $0.style == .regular }, "\(font.id) has no regular face")
-            for file in font.files {
-                guard case .download(let path, let sha256, let size) = file.source else { continue }
-                #expect(path.hasSuffix(".ttf") && size > 0)
-                #expect(sha256.count == 64 && sha256.allSatisfy(\.isHexDigit))
+            #expect(Set(font.files.keys) == Set(FontStyle.allCases), "\(font.id) lacks a style")
+            for name in font.files.values {
+                #expect(Bundle.main.url(forResource: name, withExtension: nil, subdirectory: "fonts") != nil, "\(name) not bundled")
             }
         }
     }
@@ -27,16 +25,16 @@ struct FontManagerTests {
         descriptor.flatMap { CTFontDescriptorCopyAttribute($0, kCTFontNameAttribute) as? String }
     }
 
-    @Test func bundledFontLoadsWithItsBoldFace() {
-        let faces = manager().faces("jetbrains-mono")
-        #expect(name(faces.regular) == "JetBrainsMonoNFM-Regular")
-        #expect(name(faces.bold) == "JetBrainsMonoNFM-Bold")
+    @Test func catalogueFontsLoadEveryStyle() {
+        let faces = manager().faces("ubuntu-mono")
+        #expect(name(faces.regular) == "UbuntuMonoNFM")
+        #expect(faces.bold != nil && faces.italic != nil && faces.boldItalic != nil)
+        #expect(name(manager().faces("jetbrains-mono").boldItalic) == "JetBrainsMonoNFM-BoldItalic")
         #expect(name(manager().symbols) == "SymbolsNFM")
     }
 
-    @Test func missingFontsFallBackToTheBundledOne() {
+    @Test func unknownFontsFallBackToTheDefault() {
         let fonts = manager()
-        #expect(!fonts.available(FontCatalog.fonts[1]))
         #expect(name(fonts.faces("fira-code").regular) == "JetBrainsMonoNFM-Regular")
         #expect(name(fonts.faces("custom:gone.ttf").regular) == "JetBrainsMonoNFM-Regular")
     }

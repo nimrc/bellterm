@@ -1,35 +1,38 @@
 import SwiftUI
 
-// Placeholder until the node list lands: proves the Rust core links and runs.
+/// The node list, with the attached session over it full screen. Leaving a
+/// session keeps it attached; the backgrounded app closes attachments and
+/// reopens them on return.
 struct RootView: View {
-    @State private var publicKey: String?
-    @State private var failure: String?
+    @State private var app = AppModel()
+    @State private var session: Node?
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var systemScheme
+
+    private var preferred: ColorScheme? {
+        switch app.settings.themeMode {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Button("Generate device key") {
-                        do {
-                            let key = try generateKey(comment: "bellterm")
-                            publicKey = try Bellterm.publicKey(privateKey: key)
-                            failure = nil
-                        } catch {
-                            failure = error.localizedDescription
-                        }
-                    }
-                    .buttonStyle(.glassProminent)
-                }
-                if let publicKey {
-                    Section("Public key") {
-                        Text(publicKey).font(.caption.monospaced()).textSelection(.enabled)
-                    }
-                }
-                if let failure {
-                    Section { Text(failure).foregroundStyle(.red) }
+        NodesScreen(app: app, session: $session)
+            .fullScreenCover(item: $session) { node in
+                SessionScreen(app: app, node: node) { session = nil }
+                    .preferredColorScheme(preferred)
+            }
+            .preferredColorScheme(preferred)
+            .onChange(of: scenePhase) { _, phase in
+                switch phase {
+                case .background: app.enterBackground()
+                case .active: app.enterForeground(dark: (preferred ?? systemScheme) == .dark)
+                default: break
                 }
             }
-            .navigationTitle("Bellterm")
-        }
+            .onChange(of: session == nil || !app.settings.keepScreenOn, initial: true) { _, idle in
+                UIApplication.shared.isIdleTimerDisabled = !idle
+            }
     }
 }

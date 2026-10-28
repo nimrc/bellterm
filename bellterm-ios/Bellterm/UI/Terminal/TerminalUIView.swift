@@ -42,7 +42,12 @@ final class TerminalUIView: UIView {
         }
     }
 
-    private var fonts = TerminalFonts.bundled(size: 13)
+    /// The chosen font's faces and the icon font behind them; nil until set.
+    var faces: (font: FontFaces, symbols: CTFontDescriptor?)? {
+        didSet { loadFonts() }
+    }
+
+    private var fonts: TerminalFonts?
     private var cellWidth: CGFloat = 8
     private var cellHeight: CGFloat = 16
     private var baseline: CGFloat = 12
@@ -66,7 +71,6 @@ final class TerminalUIView: UIView {
         isOpaque = true
         contentMode = .redraw
         isMultipleTouchEnabled = true
-        loadFonts()
         addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped)))
         let pan = UIPanGestureRecognizer(target: self, action: #selector(panned))
         pan.maximumNumberOfTouches = 1
@@ -80,7 +84,9 @@ final class TerminalUIView: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
 
     private func loadFonts() {
-        fonts = TerminalFonts.bundled(size: fontSize)
+        guard let faces else { return }
+        let fonts = TerminalFonts(faces.font, size: fontSize, symbols: faces.symbols)
+        self.fonts = fonts
         let cell = fonts.cell
         cellWidth = cell.width
         cellHeight = cell.height
@@ -145,7 +151,7 @@ final class TerminalUIView: UIView {
         guard !run.has(RenderFrame.invisible) else { return }
         let ink = run.has(RenderFrame.faint) ? (color & 0x00ff_ffff) | 0x9900_0000 : color
         let rect = cells(column: run.col, row: run.row, count: run.cells)
-        if !run.text.allSatisfy(\.isWhitespace) {
+        if !run.text.allSatisfy(\.isWhitespace), let fonts {
             let font = fonts.face(bold: run.has(RenderFrame.bold), italic: run.has(RenderFrame.italic))
             let attributes = [kCTFontAttributeName: font, kCTForegroundColorAttributeName: Self.color(ink)] as CFDictionary
             let line = CTLineCreateWithAttributedString(CFAttributedStringCreate(nil, run.text as CFString, attributes))
@@ -214,6 +220,7 @@ final class TerminalUIView: UIView {
 
     /// Keyboard composition, drawn at the cursor until the keyboard commits it.
     private func drawMarked(_ context: CGContext, _ frame: RenderFrame) {
+        guard let fonts else { return }
         let attributes = [kCTFontAttributeName: fonts.regular, kCTForegroundColorAttributeName: Self.color(frame.foreground)] as CFDictionary
         let line = CTLineCreateWithAttributedString(CFAttributedStringCreate(nil, marked as CFString, attributes))
         let width = CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil))

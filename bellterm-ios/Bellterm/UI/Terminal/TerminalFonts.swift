@@ -1,6 +1,15 @@
 import CoreText
 import UIKit
 
+/// The faces a font offers, before a size is chosen. Missing styles are
+/// synthesised from the regular face.
+struct FontFaces {
+    var regular: CTFontDescriptor
+    var bold: CTFontDescriptor?
+    var italic: CTFontDescriptor?
+    var boldItalic: CTFontDescriptor?
+}
+
 /// The faces the terminal draws with. Every face cascades to the bundled
 /// Symbols Nerd Font, so icons in the Private Use Area draw even when the
 /// chosen font lacks them.
@@ -10,36 +19,24 @@ struct TerminalFonts {
     var italic: CTFont
     var boldItalic: CTFont
 
-    private static let regularName = "JetBrainsMonoNFM-Regular"
-    private static let boldName = "JetBrainsMonoNFM-Bold"
-    private static let symbolsName = "SymbolsNFM"
+    private static let slant = CGAffineTransform(a: 1, b: 0, c: 0.2, d: 1, tx: 0, ty: 0)
 
-    /// Registers the bundled fonts for this process; safe to call repeatedly.
-    static let registered: Void = {
-        guard let folder = Bundle.main.url(forResource: "fonts", withExtension: nil),
-              let files = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
-        else { return }
-        let fonts = files.filter { ["ttf", "otf"].contains($0.pathExtension.lowercased()) }
-        CTFontManagerRegisterFontURLs(fonts as CFArray, .process, true, nil)
-    }()
-
-    static func bundled(size: CGFloat) -> TerminalFonts {
-        _ = registered
-        let cascade = [CTFontDescriptorCreateWithNameAndSize(symbolsName as CFString, size)] as CFArray
-        func face(_ name: String, matrix: CGAffineTransform? = nil) -> CTFont {
-            let attributes = [kCTFontNameAttribute: name, kCTFontCascadeListAttribute: cascade] as CFDictionary
-            let descriptor = CTFontDescriptorCreateWithAttributes(attributes)
-            guard var transform = matrix else { return CTFontCreateWithFontDescriptor(descriptor, size, nil) }
-            return CTFontCreateWithFontDescriptor(descriptor, size, &transform)
+    init(_ faces: FontFaces, size: CGFloat, symbols: CTFontDescriptor?) {
+        let cascade = symbols.map { [CTFontDescriptorCreateCopyWithAttributes($0, [kCTFontSizeAttribute: size] as CFDictionary)] as CFArray }
+        func font(_ descriptor: CTFontDescriptor, slanted: Bool = false) -> CTFont {
+            let withCascade = cascade.map {
+                CTFontDescriptorCreateCopyWithAttributes(descriptor, [kCTFontCascadeListAttribute: $0] as CFDictionary)
+            } ?? descriptor
+            guard slanted else { return CTFontCreateWithFontDescriptor(withCascade, size, nil) }
+            var transform = Self.slant
+            return CTFontCreateWithFontDescriptor(withCascade, size, &transform)
         }
-        // The bundled family has no italic; slant the upright faces.
-        let slant = CGAffineTransform(a: 1, b: 0, c: 0.2, d: 1, tx: 0, ty: 0)
-        return TerminalFonts(
-            regular: face(regularName),
-            bold: face(boldName),
-            italic: face(regularName, matrix: slant),
-            boldItalic: face(boldName, matrix: slant)
-        )
+        regular = font(faces.regular)
+        let boldDescriptor = faces.bold
+            ?? CTFontDescriptorCreateCopyWithSymbolicTraits(faces.regular, .traitBold, .traitBold)
+        bold = boldDescriptor.map { font($0) } ?? regular
+        italic = faces.italic.map { font($0) } ?? font(faces.regular, slanted: true)
+        boldItalic = faces.boldItalic.map { font($0) } ?? boldDescriptor.map { font($0, slanted: true) } ?? italic
     }
 
     func face(bold isBold: Bool, italic isItalic: Bool) -> CTFont {

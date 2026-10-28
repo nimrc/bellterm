@@ -5,6 +5,7 @@ import UIKit
 struct TerminalView: UIViewRepresentable {
     let connection: Connection
     let settings: Settings
+    let fonts: FontManager
     /// The pane keys and text go to; nil lets Herdr pick the focused one.
     let pane: String?
     @Binding var latchedMeta: Int32
@@ -15,6 +16,8 @@ struct TerminalView: UIViewRepresentable {
         let view = TerminalUIView()
         view.delegate = context.coordinator
         view.fontSize = settings.fontSize
+        view.faces = (fonts.faces(settings.font), fonts.symbols)
+        context.coordinator.font = "\(settings.font)#\(fonts.revision)"
         keys.view = view
         return view
     }
@@ -24,6 +27,11 @@ struct TerminalView: UIViewRepresentable {
         view.frameToDraw = connection.frame
         view.latchedMeta = latchedMeta
         if view.fontSize != settings.fontSize { view.fontSize = settings.fontSize }
+        let font = "\(settings.font)#\(fonts.revision)"
+        if context.coordinator.font != font {
+            context.coordinator.font = font
+            view.faces = (fonts.faces(settings.font), fonts.symbols)
+        }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -31,6 +39,8 @@ struct TerminalView: UIViewRepresentable {
     @MainActor
     final class Coordinator: TerminalViewDelegate {
         var parent: TerminalView
+        /// The font id and font-set revision the view was last given.
+        var font: String?
 
         init(_ parent: TerminalView) { self.parent = parent }
 

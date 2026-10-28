@@ -14,6 +14,7 @@ final class AppModel {
     let nodes = NodeStore()
     let keychain = Keychain()
     let settings = Settings()
+    let fonts = FontManager()
     private(set) var connections: [String: Connection] = [:]
     /// Nodes attached when the app went to the background, to reattach.
     @ObservationIgnored private var suspended: [Node] = []

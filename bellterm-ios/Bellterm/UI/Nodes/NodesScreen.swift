@@ -72,7 +72,7 @@ struct NodesScreen: View {
                 switch route {
                 case .keys: KeysScreen(app: app)
                 case .knownHosts: KnownHostsScreen(nodes: app.nodes)
-                case .settings: SettingsScreen(settings: app.settings)
+                case .settings: SettingsScreen(settings: app.settings, fonts: app.fonts)
                 case .importConfig: ImportConfigScreen(app: app)
                 }
             }

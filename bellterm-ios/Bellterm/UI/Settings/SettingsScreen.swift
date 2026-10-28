@@ -3,6 +3,7 @@ import SwiftUI
 /// Appearance and terminal preferences, applied live.
 struct SettingsScreen: View {
     @Bindable var settings: Settings
+    let fonts: FontManager
 
     var body: some View {
         Form {
@@ -20,7 +21,11 @@ struct SettingsScreen: View {
                 }
             }
             Section("Terminal") {
-                LabeledContent("Font", value: "JetBrains Mono Nerd Font")
+                NavigationLink {
+                    FontsScreen(settings: settings, fonts: fonts)
+                } label: {
+                    LabeledContent("Font", value: fonts.displayName(settings.font))
+                }
                 Stepper(value: $settings.fontSize, in: 8...24, step: 1) {
                     LabeledContent("Font size", value: "\(Int(settings.fontSize)) pt")
                 }

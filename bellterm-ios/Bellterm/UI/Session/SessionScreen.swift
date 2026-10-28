@@ -105,7 +105,7 @@ struct SessionScreen: View {
                 ZStack {
                     Color(rgb: scheme.background)
                     TerminalView(
-                        connection: connection, settings: app.settings, pane: focusedPane,
+                        connection: connection, settings: app.settings, fonts: app.fonts, pane: focusedPane,
                         latchedMeta: $latched, keys: keys
                     )
                     if connection.state == .connecting {

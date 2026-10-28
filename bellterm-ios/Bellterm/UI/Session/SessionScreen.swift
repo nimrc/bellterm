@@ -37,6 +37,9 @@ struct SessionScreen: View {
     @State private var askPasswords: [Node]?
     @State private var banner: String?
     @State private var keys = ExtraKeySender()
+    @State private var posture = Posture.flat
+    /// A horizontal fold across the terminal area, in its coordinates.
+    @State private var fold: CGRect?
 
     private var connection: Connection? { app.connection(node.id) }
     private var dark: Bool { colorScheme == .dark }
@@ -93,34 +96,43 @@ struct SessionScreen: View {
                     onNew: { prompt = .newTab(workspace: workspace.id) }
                 )
             }
-            ZStack {
-                Color(rgb: scheme.background).ignoresSafeArea(edges: .bottom)
-                TerminalView(
-                    connection: connection, settings: app.settings, pane: focusedPane,
-                    latchedMeta: $latched, keys: keys
-                )
-                if connection.state == .connecting {
-                    ProgressView().controlSize(.large)
+            // Laptop posture on iPhone Duo: the terminal fills the upper half
+            // and the extra keys sit just below the fold, above the keyboard.
+            let tabletop = posture == .tabletop ? fold : nil
+            VStack(spacing: 0) {
+                ZStack {
+                    Color(rgb: scheme.background)
+                    TerminalView(
+                        connection: connection, settings: app.settings, pane: focusedPane,
+                        latchedMeta: $latched, keys: keys
+                    )
+                    if connection.state == .connecting {
+                        ProgressView().controlSize(.large)
+                    }
+                    StateCard(
+                        state: connection.state,
+                        rejectedPassword: rejectedHop(connection.state)?.auth == .password,
+                        onRetry: retry,
+                        onSignIn: { if let hop = rejectedHop(connection.state) { askPasswords = [hop] } },
+                        onTrust: { host, fingerprint in
+                            app.nodes.trust(host, fingerprint: fingerprint)
+                            retry()
+                        },
+                        onLeave: { app.disconnect(node.id); onLeave() }
+                    )
                 }
-                StateCard(
-                    state: connection.state,
-                    rejectedPassword: rejectedHop(connection.state)?.auth == .password,
-                    onRetry: retry,
-                    onSignIn: { if let hop = rejectedHop(connection.state) { askPasswords = [hop] } },
-                    onTrust: { host, fingerprint in
-                        app.nodes.trust(host, fingerprint: fingerprint)
-                        retry()
-                    },
-                    onLeave: { app.disconnect(node.id); onLeave() }
-                )
+                .frame(height: tabletop?.minY)
+                if let tabletop {
+                    Color.clear.frame(height: tabletop.height)
+                    extraKeys(connection, pane: focusedPane)
+                    Spacer(minLength: 0)
+                }
             }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            ExtraKeysRow(
-                latched: $latched,
-                onKey: { code, repeats in keys.key(code, repeat: repeats) },
-                onText: { connection.text(pane: focusedPane, $0) }
-            )
+            .onHorizontalFoldChange { fold = $0 }
+            .ignoresSafeArea(tabletop == nil ? [] : .keyboard, edges: .bottom)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if tabletop == nil { extraKeys(connection, pane: focusedPane) }
+            }
         }
         .overlay(alignment: .top) {
             if let banner {
@@ -146,9 +158,19 @@ struct SessionScreen: View {
                 )
             }
         }
+        .onPostureChange { posture = $0 }
+        .animation(.smooth, value: posture)
         .task(id: scheme) { connection.setTheme(json: scheme.json) }
         .task(id: ObjectIdentifier(connection)) { await relay(connection.events, connection: connection) }
         .onAppear { keys.showKeyboard() }
+    }
+
+    private func extraKeys(_ connection: Connection, pane: String?) -> some View {
+        ExtraKeysRow(
+            latched: $latched,
+            onKey: { code, repeats in keys.key(code, repeat: repeats) },
+            onText: { connection.text(pane: pane, $0) }
+        )
     }
 
     private func subtitle(workspace: Workspace?, pane: String?, view: ShellView?) -> String {

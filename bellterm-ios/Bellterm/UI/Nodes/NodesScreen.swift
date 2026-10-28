@@ -56,7 +56,8 @@ struct NodesScreen: View {
             .navigationTitle("Bellterm")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu("More", systemImage: "ellipsis") {
+                    // The ellipsis belongs to the system's overflow menu.
+                    Menu("Manage", systemImage: "slider.horizontal.3") {
                         Button("Import SSH config", systemImage: "square.and.arrow.down") { route = .importConfig }
                         Button("Keys & certificates", systemImage: "key") { route = .keys }
                         Button("Known hosts", systemImage: "checkmark.shield") { route = .knownHosts }

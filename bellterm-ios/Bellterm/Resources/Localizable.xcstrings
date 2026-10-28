@@ -951,6 +951,16 @@
         }
       }
     },
+    "Manage" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理"
+          }
+        }
+      }
+    },
     "More" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1337,6 +1347,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索节点"
+          }
+        }
+      }
+    },
+    "Session" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会话"
           }
         }
       }

@@ -1,4 +1,5 @@
 import CoreText
+import SwiftUI
 import UIKit
 
 @MainActor
@@ -15,8 +16,6 @@ protocol TerminalViewDelegate: AnyObject {
     func terminal(copyFrom start: (column: Int, row: Int), to end: (column: Int, row: Int))
     func terminalPaste()
     func terminal(fontSize: CGFloat)
-    /// Ctrl or Alt latched by the extra-keys row was used up.
-    func terminalModifiersConsumed()
 }
 
 /// Draws the frames libghostty produced and turns touch and keyboard input
@@ -29,8 +28,36 @@ final class TerminalUIView: UIView {
         didSet { setNeedsDisplay() }
     }
 
+    let extraKeys = ExtraKeysState()
+
     /// Modifiers latched by the extra-keys row, as `KeyMap` meta bits.
-    var latchedMeta: Int32 = 0
+    private var latchedMeta: Int32 {
+        get { extraKeys.latched }
+        set { extraKeys.latched = newValue }
+    }
+
+    /// The extra-keys row, attached to the keyboard so it comes and goes with it.
+    private lazy var accessory: UIView = {
+        let row = ExtraKeysRow(
+            state: extraKeys,
+            onKey: { [weak self] code, repeats in self?.sendKey(code, repeat: repeats) },
+            onText: { [weak self] in self?.insertText($0) },
+            onToggleKeyboard: { [weak self] in _ = self?.resignFirstResponder() }
+        )
+        let host = UIHostingController(rootView: row)
+        host.view.backgroundColor = .clear
+        host.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        let container = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: 52))
+        container.autoresizingMask = .flexibleWidth
+        host.view.frame = container.bounds
+        container.addSubview(host.view)
+        accessoryHost = host
+        return container
+    }()
+
+    private var accessoryHost: UIHostingController<ExtraKeysRow>?
+
+    override var inputAccessoryView: UIView? { accessory }
 
     static let fontSizes: ClosedRange<CGFloat> = 7...32
 
@@ -102,7 +129,7 @@ final class TerminalUIView: UIView {
 
     private func reportGrid() {
         guard bounds.width > 0, bounds.height > 0, cellWidth > 0 else { return }
-        let scale = window?.screen.scale ?? traitCollection.displayScale
+        let scale = traitCollection.displayScale
         let grid = Grid(
             cols: Int32(max(1, (bounds.width / cellWidth).rounded(.down))),
             rows: Int32(max(1, (bounds.height / cellHeight).rounded(.down))),
@@ -422,9 +449,7 @@ final class TerminalUIView: UIView {
     }
 
     private func consumeLatch() {
-        guard latchedMeta != 0 else { return }
-        latchedMeta = 0
-        delegate?.terminalModifiersConsumed()
+        if latchedMeta != 0 { latchedMeta = 0 }
     }
 
     /// Sends text still being composed before a key that bypasses the

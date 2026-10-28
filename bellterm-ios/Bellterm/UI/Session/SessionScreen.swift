@@ -31,41 +31,20 @@ struct SessionScreen: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @State private var column = NavigationSplitViewColumn.detail
-    @State private var latched: Int32 = 0
     @State private var prompt: Prompt?
     @State private var promptText = ""
     @State private var askPasswords: [Node]?
     @State private var banner: String?
     @State private var keys = ExtraKeySender()
-    @State private var posture = Posture.flat
-    /// A horizontal fold across the terminal area, in its coordinates.
-    @State private var fold: CGRect?
+    /// The terminal sits above a tabletop fold, so the keyboard no longer shrinks it.
+    @State private var tabletop = false
 
     private var connection: Connection? { app.connection(node.id) }
     private var dark: Bool { colorScheme == .dark }
 
     var body: some View {
-        NavigationSplitView(preferredCompactColumn: $column) {
-            SessionSidebar(
-                node: node,
-                view: connection?.view,
-                onWorkspace: { connection?.focusWorkspace($0.id); column = .detail },
-                onRenameWorkspace: { ask(.renameWorkspace(id: $0.id, label: $0.label)) },
-                onCloseWorkspace: { ask(.closeWorkspace(id: $0.id, label: $0.label)) },
-                onAgent: { connection?.focusPane($0.pane); column = .detail },
-                onNewWorkspace: { connection?.newWorkspace(source: connection?.view?.workspace?.id); column = .detail }
-            )
-            .navigationTitle(node.title)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Nodes", systemImage: "chevron.backward", action: onLeave)
-                }
-            }
-        } detail: {
-            if let connection {
-                detail(connection)
-                    .id(ObjectIdentifier(connection))
-            }
+        GeometryReader { proxy in
+            split(bookFold: Fold.vertical(in: proxy))
         }
         .alert(promptTitle, isPresented: isPrompting, presenting: prompt) { prompt in
             promptActions(prompt)
@@ -78,6 +57,36 @@ struct SessionScreen: View {
                 app.reconnect(node, passwords: secrets, dark: dark, remember: remember)
             }
         }
+    }
+
+    /// Folded like a book, the sidebar takes the leading half so nothing of
+    /// the terminal or its controls lies in the curve.
+    private func split(bookFold: CGRect?) -> some View {
+        NavigationSplitView(preferredCompactColumn: $column) {
+            SessionSidebar(
+                node: node,
+                view: connection?.view,
+                onWorkspace: { connection?.focusWorkspace($0.id); column = .detail },
+                onRenameWorkspace: { ask(.renameWorkspace(id: $0.id, label: $0.label)) },
+                onCloseWorkspace: { ask(.closeWorkspace(id: $0.id, label: $0.label)) },
+                onAgent: { connection?.focusPane($0.pane); column = .detail },
+                onNewWorkspace: { connection?.newWorkspace(source: connection?.view?.workspace?.id); column = .detail }
+            )
+            .navigationTitle(node.title)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Nodes", systemImage: "chevron.backward", action: onLeave)
+                }
+            }
+            .navigationSplitViewColumnWidth(bookFold.map(\.minX) ?? 320)
+        } detail: {
+            if let connection {
+                detail(connection)
+                    .id(ObjectIdentifier(connection))
+            }
+        }
+        .navigationSplitViewStyle(.balanced)
+        .animation(.smooth, value: bookFold)
     }
 
     @ViewBuilder
@@ -98,15 +107,13 @@ struct SessionScreen: View {
                     onNew: { ask(.newTab(workspace: workspace.id)) }
                 )
             }
-            // Laptop posture on iPhone Duo: the terminal fills the upper half
-            // and the extra keys sit just below the fold, above the keyboard.
-            let tabletop = posture == .tabletop ? fold : nil
-            VStack(spacing: 0) {
+            // Tabletop on iPhone Duo: the terminal fills the raised half, and
+            // the keyboard with its extra keys the flat half.
+            GeometryReader { proxy in
+                let fold = Fold.horizontal(in: proxy)
                 ZStack {
-                    Color(rgb: scheme.background)
                     TerminalView(
-                        connection: connection, settings: app.settings, fonts: app.fonts, pane: focusedPane,
-                        latchedMeta: $latched, keys: keys
+                        connection: connection, settings: app.settings, fonts: app.fonts, pane: focusedPane, keys: keys
                     )
                     if connection.state == .connecting {
                         ProgressView().controlSize(.large)
@@ -123,19 +130,15 @@ struct SessionScreen: View {
                         onLeave: { app.disconnect(node.id); onLeave() }
                     )
                 }
-                .frame(height: tabletop?.minY)
-                if let tabletop {
-                    Color.clear.frame(height: tabletop.height)
-                    extraKeys(connection, pane: focusedPane)
-                    Spacer(minLength: 0)
+                .frame(height: fold?.minY ?? proxy.size.height, alignment: .top)
+                .onChange(of: fold != nil, initial: true) { _, folded in
+                    withAnimation(.smooth) { tabletop = folded }
                 }
             }
-            .onHorizontalFoldChange { fold = $0 }
-            .ignoresSafeArea(tabletop == nil ? [] : .keyboard, edges: .bottom)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if tabletop == nil { extraKeys(connection, pane: focusedPane) }
-            }
+            .ignoresSafeArea(tabletop ? .keyboard : [], edges: .bottom)
         }
+        // The terminal's colour runs under the bars; its text stays inside the safe area.
+        .background { Color(rgb: scheme.background).ignoresSafeArea() }
         .overlay(alignment: .top) {
             if let banner {
                 Text(banner)
@@ -160,20 +163,9 @@ struct SessionScreen: View {
                 )
             }
         }
-        .onPostureChange { posture = $0 }
-        .animation(.smooth, value: posture)
         .task(id: scheme) { connection.setTheme(json: scheme.json) }
         .task(id: ObjectIdentifier(connection)) { await relay(connection.events, connection: connection) }
         .onAppear { keys.showKeyboard() }
-    }
-
-    private func extraKeys(_ connection: Connection, pane: String?) -> some View {
-        ExtraKeysRow(
-            latched: $latched,
-            onKey: { code, repeats in keys.key(code, repeat: repeats) },
-            onText: { connection.text(pane: pane, $0) },
-            onToggleKeyboard: keys.toggleKeyboard
-        )
     }
 
     private func subtitle(workspace: Workspace?, pane: String?, view: ShellView?) -> String {
@@ -348,7 +340,8 @@ struct SessionMenu: View {
     let onDisconnect: () -> Void
 
     var body: some View {
-        Menu("More", systemImage: "ellipsis") {
+        // The ellipsis belongs to the system's overflow menu.
+        Menu("Session", systemImage: "rectangle.split.2x1") {
             Button("Paste", systemImage: "doc.on.clipboard", action: onPaste)
             Section {
                 Button("Split right", systemImage: "rectangle.split.2x1") { pane.map { connection.split(pane: $0, direction: "right") } }

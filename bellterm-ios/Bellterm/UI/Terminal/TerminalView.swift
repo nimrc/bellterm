@@ -8,8 +8,6 @@ struct TerminalView: UIViewRepresentable {
     let fonts: FontManager
     /// The pane keys and text go to; nil lets Herdr pick the focused one.
     let pane: String?
-    @Binding var latchedMeta: Int32
-    /// Set to send a key from the extra-keys row.
     let keys: ExtraKeySender
 
     func makeUIView(context: Context) -> TerminalUIView {
@@ -25,7 +23,6 @@ struct TerminalView: UIViewRepresentable {
     func updateUIView(_ view: TerminalUIView, context: Context) {
         context.coordinator.parent = self
         view.frameToDraw = connection.frame
-        view.latchedMeta = latchedMeta
         if view.fontSize != settings.fontSize { view.fontSize = settings.fontSize }
         let font = "\(settings.font)#\(fonts.revision)"
         if context.coordinator.font != font {
@@ -88,23 +85,13 @@ struct TerminalView: UIViewRepresentable {
         func terminal(fontSize: CGFloat) {
             parent.settings.fontSize = min(max(fontSize, 8), 24)
         }
-
-        func terminalModifiersConsumed() { parent.latchedMeta = 0 }
     }
 }
 
-/// Lets SwiftUI controls send keys through the terminal view, which commits
-/// any text still being composed first.
+/// Lets SwiftUI raise the keyboard on the terminal view.
 @MainActor
 final class ExtraKeySender {
     fileprivate weak var view: TerminalUIView?
 
-    func key(_ code: Int32, repeat: Bool = false) { view?.sendKey(code, repeat: `repeat`) }
-
     func showKeyboard() { view?.becomeFirstResponder() }
-
-    func toggleKeyboard() {
-        guard let view else { return }
-        if view.isFirstResponder { view.resignFirstResponder() } else { view.becomeFirstResponder() }
-    }
 }

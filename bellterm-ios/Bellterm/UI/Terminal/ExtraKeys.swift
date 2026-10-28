@@ -32,12 +32,21 @@ enum ExtraKey: Hashable {
     ]
 }
 
-/// The row of keys a phone keyboard lacks, on a strip of Liquid Glass. Ctrl
+/// Ctrl and Alt latched by the extra-keys row, shared with the terminal view
+/// that consumes them.
+@MainActor
+@Observable
+final class ExtraKeysState {
+    var latched: Int32 = 0
+}
+
+/// The row of keys a phone keyboard lacks, on a strip of Liquid Glass, riding
+/// on the keyboard as its accessory. Ctrl
 /// and Alt latch for the next key or character; arrows and paging keys repeat
 /// while held.
 struct ExtraKeysRow: View {
     var keys: [ExtraKey] = ExtraKey.defaults
-    @Binding var latched: Int32
+    @Bindable var state: ExtraKeysState
     let onKey: (Int32, Bool) -> Void
     let onText: (String) -> Void
     let onToggleKeyboard: () -> Void
@@ -88,10 +97,10 @@ struct ExtraKeysRow: View {
         case .text(let label, let text):
             keyCap { Text(label) }.onTapGesture { onText(text) }
         case .modifier(let label, let meta):
-            keyCap(active: latched & meta != 0) { Text(label) }
+            keyCap(active: state.latched & meta != 0) { Text(label) }
                 .onTapGesture {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    latched ^= meta
+                    state.latched ^= meta
                 }
         }
     }

@@ -1,6 +1,6 @@
 # Bellterm
 
-Bellterm is a native Android client for a [Herdr](https://herdr.dev/) daemon
+Bellterm is a native Android and iOS client for a [Herdr](https://herdr.dev/) daemon
 running on a machine you reach over SSH. The name is the terminal's bell (BEL)
 and the bellwether that leads a herd: it rings when an agent needs you. It is a client only: Herdr on
 the host owns the terminals, workspaces, tabs, panes, and agents, and they keep
@@ -12,6 +12,13 @@ running when the phone disconnects, sleeps, or loses signal.
 Bellterm runs on Android 10 (API 29) or newer, on arm64 and x86_64. The
 terminal library's Zig code uses ELF thread-local storage, which Android's
 loader only supports from Android 10.
+
+The iOS app (`bellterm-ios/`) runs on iOS 26 or newer, uses Liquid Glass for its
+chrome, and adapts to iPhone Duo: unfolded, workspaces and agents sit beside
+the terminal; partly folded like a laptop, the terminal fills the upper half
+and the keyboard the lower. iOS suspends apps in the background, so the iOS app
+closes attachments there and reattaches on return; Herdr keeps everything
+running meanwhile, but agent notifications only arrive while the app is open.
 
 ## What it does
 
@@ -197,6 +204,28 @@ Keep the keystore and its passwords out of the repository: every later update
 must be signed with the same key, or Android refuses to install it over the
 existing app.
 
+### iOS
+
+Requirements: Xcode 27.1 or newer, [XcodeGen](https://github.com/yonaskolb/XcodeGen),
+pkg-config, Rust with the `aarch64-apple-ios` and `aarch64-apple-ios-sim`
+targets, and Zig 0.15.2.
+
+```sh
+just ios-core     # bellterm-ios/Generated: the Rust core as an xcframework, and its Swift bindings
+just ios-project  # bellterm-ios/Bellterm.xcodeproj from project.yml
+just ios-test     # Swift tests on an iPhone simulator
+```
+
+Zig 0.15.2 cannot link against the libSystem stubs of macOS SDK 26.5 and later,
+so `just ios-core` needs Xcode 26.0 selected (`DEVELOPER_DIR`) on a macOS 26
+host; Zig 0.15.2 does not run on macOS 27 at all. The iOS CI workflow builds the
+core that way and uploads it as the `bellterm-ios-core` artifact; on other
+machines, download it into `bellterm-ios/Generated` instead:
+
+```sh
+gh run download <run-id> -n bellterm-ios-core -D bellterm-ios/Generated
+```
+
 ### Publishing an update
 
 The app checks `https://dl.bellterm.app/latest.json` at most once a day, and
@@ -253,6 +282,8 @@ with it (point the target's `TrustedUserCAKeys` at the CA and its
 - Generated keys are Ed25519; RSA and ECDSA keys can be imported but not
   generated. FIDO/security-key (`sk-`) keys and SSH agents are not supported.
 - `Match` and `Include` in imported SSH configuration are not evaluated.
+- On iOS, attachments close while the app is in the background, so agent
+  notifications do not arrive then; only the bundled font is offered so far.
 
 ## License
 

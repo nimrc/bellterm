@@ -36,6 +36,11 @@ final class Connection {
         case bell
     }
 
+    // `touch` kinds, as `bellterm-ffi` reads them.
+    static let touchTap: Int32 = 0
+    static let touchScrollUp: Int32 = 1
+    static let touchScrollDown: Int32 = 2
+
     let node: Node
     private(set) var state: State = .connecting
     private(set) var view: ShellView?

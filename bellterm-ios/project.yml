@@ -10,6 +10,8 @@ settings:
     SWIFT_VERSION: "6.0"
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
+    # The Rust core ships arm64 slices only.
+    EXCLUDED_ARCHS[sdk=iphonesimulator*]: x86_64
 targets:
   Bellterm:
     type: application

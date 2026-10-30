@@ -406,6 +406,12 @@ impl Session {
             .request(&self.boot()?, parse_method(method)?, params)?)
     }
 
+    /// Have the host prove the link alive within a few seconds, as after the
+    /// network changed under it; a dead link then ends as a disconnect.
+    pub fn check_liveness(&self) {
+        self.handle.check_liveness();
+    }
+
     pub fn disconnect(&self) {
         self.handle.disconnect();
     }

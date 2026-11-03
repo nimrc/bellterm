@@ -54,4 +54,4 @@ Report what was actually run; never claim an unrun check passed.
 
 - Conventional commit subjects (`feat`, `fix`, `refactor`, `docs`, `test`,
   `chore`); explain nontrivial changes in the body.
-- Only commit, push, or open a PR when asked. Never add AI attribution lines.
+- Never add AI attribution lines.

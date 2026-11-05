@@ -5,6 +5,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -12,8 +13,11 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.bellterm.core.AgentStatus
+import app.bellterm.ui.glass.GlassTheme
 
 // Bellterm's palette: teal for the bell, deep slate around it, and a brass
 // counterpoint. Every screen draws from these through the colour scheme.
@@ -36,8 +40,8 @@ private val LightScheme = lightColorScheme(
     onTertiary = Color.White,
     tertiaryContainer = Color(0xFFFFDDA8),
     onTertiaryContainer = Color(0xFF2B1700),
-    background = Color(0xFFFBF8F3),
-    surface = Color(0xFFFBF8F3),
+    background = Color(0xFFF2F4F7),
+    surface = Color(0xFFF2F4F7),
     surfaceContainerLowest = Color.White,
     surfaceContainerLow = Color(0xFFF6F2EB),
     surfaceContainer = Color(0xFFF0ECE4),
@@ -59,8 +63,8 @@ private val DarkScheme = darkColorScheme(
     onTertiary = Color(0xFF452B00),
     tertiaryContainer = Color(0xFF633F00),
     onTertiaryContainer = Color(0xFFFFDDA8),
-    background = Color(0xFF12161F),
-    surface = Color(0xFF12161F),
+    background = Color(0xFF0C1017),
+    surface = Color(0xFF0C1017),
     surfaceContainerLowest = Color(0xFF0D1118),
     surfaceContainerLow = Color(0xFF181D27),
     surfaceContainer = Slate,
@@ -70,12 +74,23 @@ private val DarkScheme = darkColorScheme(
 )
 
 val BelltermShapes = Shapes(
-    extraSmall = RoundedCornerShape(6.dp),
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(22.dp),
-    extraLarge = RoundedCornerShape(28.dp),
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(14.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(26.dp),
+    extraLarge = RoundedCornerShape(32.dp),
 )
+
+// COUI's type ramp: heavier, tighter titles over a quiet body.
+private val BelltermTypography = Typography().let { base ->
+    base.copy(
+        headlineMedium = base.headlineMedium.copy(fontWeight = FontWeight.Bold, fontSize = 30.sp, letterSpacing = (-0.3).sp),
+        titleLarge = base.titleLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 21.sp, letterSpacing = (-0.1).sp),
+        titleMedium = base.titleMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 17.sp),
+        bodyLarge = base.bodyLarge.copy(fontSize = 16.sp, letterSpacing = 0.sp),
+        labelLarge = base.labelLarge.copy(fontSize = 14.sp, letterSpacing = 0.1.sp),
+    )
+}
 
 @Composable
 fun BelltermTheme(dark: Boolean, dynamic: Boolean, content: @Composable () -> Unit) {
@@ -86,7 +101,9 @@ fun BelltermTheme(dark: Boolean, dynamic: Boolean, content: @Composable () -> Un
         dark -> DarkScheme
         else -> LightScheme
     }
-    MaterialTheme(colorScheme = scheme, shapes = BelltermShapes, content = content)
+    MaterialTheme(colorScheme = scheme, shapes = BelltermShapes, typography = BelltermTypography) {
+        GlassTheme(dark = dark, content = content)
+    }
 }
 
 /** The daemon's agent status as a colour, the same on every client. */

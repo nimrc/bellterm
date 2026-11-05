@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- coui-blur needs RuntimeShader (API 33); ui/glass only calls it after
+         isRuntimeShaderSupported() and draws a plain tint below that. -->
+    <uses-sdk tools:overrideLibrary="io.github.suqi8.coui.kmp.blur,io.github.suqi8.coui.kmp.shader" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

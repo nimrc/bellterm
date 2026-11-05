@@ -25,6 +25,14 @@ adapted files, the upstream revision they came from, and the modifications
 made to them are recorded in crates/herdr-protocol/NOTICE.md. No upstream
 NOTICE file was present at the revision used.
 
+app/src/main/java/app/bellterm/ui/glass/Lens.kt
+-----------------------------------------------
+Copyright 2026, compose-coui-ui contributors.
+Licensed under the Apache License, Version 2.0. Taken from the COUI example
+app (https://github.com/suqi8/coui), which adapted it from
+Kyant0/AndroidLiquidGlass (https://github.com/Kyant0/AndroidLiquidGlass),
+also Apache-2.0. Changes: the package name.
+
 Fonts
 -----
 The fonts bundled in app/src/main/assets/fonts/ carry their own licences,

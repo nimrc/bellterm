@@ -11,10 +11,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -23,30 +23,28 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -59,16 +57,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.bellterm.BelltermApp
+import app.bellterm.R
 import app.bellterm.data.AppLanguage
 import app.bellterm.data.AppLanguages
-import app.bellterm.R
 import app.bellterm.data.ThemeMode
 import app.bellterm.data.UpdateState
 import app.bellterm.ui.components.Group
@@ -76,6 +80,13 @@ import app.bellterm.ui.components.ItemRow
 import app.bellterm.ui.components.Pill
 import app.bellterm.ui.components.SectionHeader
 import app.bellterm.ui.components.rememberOpenDownload
+import app.bellterm.ui.glass.GlassAlertDialog
+import app.bellterm.ui.glass.GlassButton
+import app.bellterm.ui.glass.GlassDivider
+import app.bellterm.ui.glass.GlassScreen
+import app.bellterm.ui.glass.GlassSegmented
+import app.bellterm.ui.glass.IconBadge
+import app.bellterm.ui.glass.pressScale
 import app.bellterm.ui.terminal.FontChoice
 import app.bellterm.ui.theme.TerminalScheme
 import app.bellterm.ui.theme.TerminalSchemes
@@ -109,44 +120,33 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
     }
     BackHandler(onBack = onBack)
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
-            )
-        },
-    ) { padding ->
-        LazyColumn(contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding() + 32.dp)) {
+    GlassScreen(title = stringResource(R.string.settings), onBack = onBack, snackbar = snackbar) { padding ->
+        LazyColumn(contentPadding = padding, modifier = Modifier.testTag("settings")) {
             item { SectionHeader(stringResource(R.string.section_appearance)) }
             item {
                 Group {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(stringResource(R.string.theme_mode), style = MaterialTheme.typography.bodyLarge)
-                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                            ThemeMode.entries.forEachIndexed { index, mode ->
-                                SegmentedButton(
-                                    selected = settings.themeMode == mode,
-                                    onClick = { app.settings.update { it.copy(themeMode = mode) } },
-                                    shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
-                                ) {
-                                    Text(stringResource(when (mode) {
-                                        ThemeMode.System -> R.string.theme_system
-                                        ThemeMode.Light -> R.string.theme_light
-                                        ThemeMode.Dark -> R.string.theme_dark
-                                    }))
-                                }
-                            }
-                        }
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(R.string.theme_mode), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                        GlassSegmented(
+                            options = ThemeMode.entries.map {
+                                stringResource(when (it) {
+                                    ThemeMode.System -> R.string.theme_system
+                                    ThemeMode.Light -> R.string.theme_light
+                                    ThemeMode.Dark -> R.string.theme_dark
+                                })
+                            },
+                            selected = ThemeMode.entries.indexOf(settings.themeMode),
+                            onSelect = { index -> app.settings.update { it.copy(themeMode = ThemeMode.entries[index]) } },
+                        )
                     }
-                    HorizontalDivider()
+                    GlassDivider()
                     LanguagePicker()
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        HorizontalDivider()
+                        GlassDivider()
                         ItemRow(
                             title = stringResource(R.string.dynamic_color),
                             detail = stringResource(R.string.dynamic_color_help),
+                            leading = { IconBadge(Icons.Default.Favorite, Color(0xFFE5508A)) },
                             onClick = { app.settings.update { it.copy(dynamicColor = !it.dynamicColor) } },
                             trailing = { Switch(settings.dynamicColor, { on -> app.settings.update { it.copy(dynamicColor = on) } }) },
                         )
@@ -168,7 +168,7 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
                 val choices = remember(fontChanges) { app.fonts.choices() }
                 Group {
                     choices.forEachIndexed { index, choice ->
-                        if (index > 0) HorizontalDivider()
+                        if (index > 0) GlassDivider()
                         FontRow(
                             app = app,
                             choice = choice,
@@ -194,18 +194,20 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
                             },
                         )
                     }
-                    HorizontalDivider()
-                    Box(Modifier.padding(12.dp)) {
-                        OutlinedButton(onClick = { fontPicker.launch(arrayOf("font/*", "application/octet-stream", "*/*")) }) {
-                            Text(stringResource(R.string.import_font))
-                        }
+                    GlassDivider()
+                    Box(Modifier.padding(14.dp)) {
+                        GlassButton(
+                            stringResource(R.string.import_font),
+                            onClick = { fontPicker.launch(arrayOf("font/*", "application/octet-stream", "*/*")) },
+                            icon = Icons.Default.Add,
+                        )
                     }
                 }
             }
             item {
                 Group(Modifier.padding(top = 12.dp)) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(stringResource(R.string.font_size, settings.fontSize.toInt()), style = MaterialTheme.typography.bodyLarge)
+                    Column(Modifier.padding(18.dp)) {
+                        Text(stringResource(R.string.font_size, settings.fontSize.toInt()), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                         Slider(
                             value = settings.fontSize,
                             onValueChange = { size -> app.settings.update { it.copy(fontSize = size.toInt().toFloat()) } },
@@ -222,13 +224,15 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
                 Group {
                     ItemRow(
                         title = stringResource(R.string.vibrate_on_bell),
+                        leading = { IconBadge(Icons.Default.Notifications, Color(0xFFF08A3C)) },
                         onClick = { app.settings.update { it.copy(vibrateOnBell = !it.vibrateOnBell) } },
                         trailing = { Switch(settings.vibrateOnBell, { on -> app.settings.update { it.copy(vibrateOnBell = on) } }) },
                     )
-                    HorizontalDivider()
+                    GlassDivider()
                     ItemRow(
                         title = stringResource(R.string.keep_screen_on),
                         detail = stringResource(R.string.keep_screen_on_help),
+                        leading = { IconBadge(Icons.Default.Face, Color(0xFF4A8CF0)) },
                         onClick = { app.settings.update { it.copy(keepScreenOn = !it.keepScreenOn) } },
                         trailing = { Switch(settings.keepScreenOn, { on -> app.settings.update { it.copy(keepScreenOn = on) } }) },
                     )
@@ -240,11 +244,13 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
                 Group {
                     ItemRow(
                         title = stringResource(R.string.app_name),
+                        leading = { IconBadge(Icons.Default.Info, Color(0xFF2F9E9A)) },
                         detail = stringResource(R.string.about_text, context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""),
                     )
-                    HorizontalDivider()
+                    GlassDivider()
                     ItemRow(
                         title = stringResource(R.string.check_updates),
+                        leading = { IconBadge(Icons.Default.Refresh, Color(0xFF3FB868)) },
                         detail = when (val state = update) {
                             UpdateState.Idle -> null
                             UpdateState.Checking -> stringResource(R.string.update_checking)
@@ -266,8 +272,13 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
                             null
                         },
                     )
-                    HorizontalDivider()
-                    ItemRow(title = stringResource(R.string.licenses), onClick = { licenses = true })
+                    GlassDivider()
+                    ItemRow(
+                        title = stringResource(R.string.licenses),
+                        leading = { IconBadge(Icons.AutoMirrored.Filled.List, Color(0xFF8A8F98)) },
+                        onClick = { licenses = true },
+                        chevron = true,
+                    )
                 }
             }
         }
@@ -286,7 +297,7 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
                 context.assets.open(path).bufferedReader().use { it.readText() }
             }
         }
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = { licenses = false },
             title = { Text(stringResource(R.string.licenses)) },
             text = {
@@ -300,29 +311,34 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
 @Composable
 private fun SchemeRow(schemes: List<TerminalScheme>, selected: String, onSelect: (String) -> Unit) {
     Row(
-        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         schemes.forEach { scheme -> SchemeCard(scheme, scheme.id == selected) { onSelect(scheme.id) } }
     }
 }
 
+private val SchemeShape = RoundedCornerShape(18.dp)
+
 /** A tiny terminal in the scheme's colours. */
 @Composable
 private fun SchemeCard(scheme: TerminalScheme, selected: Boolean, onClick: () -> Unit) {
     fun c(v: Long) = Color(0xff000000 or v)
+    val interaction = remember { MutableInteractionSource() }
     Column(
         Modifier
-            .width(148.dp)
-            .clip(MaterialTheme.shapes.medium)
+            .width(152.dp)
+            .pressScale(interaction, 0.95f)
+            .dropShadow(SchemeShape, Shadow(radius = 14.dp, color = Color.Black.copy(alpha = if (selected) 0.28f else 0.12f), offset = DpOffset(0.dp, 4.dp)))
+            .clip(SchemeShape)
             .border(
-                if (selected) 3.dp else 1.dp,
-                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                MaterialTheme.shapes.medium,
+                if (selected) 2.5.dp else 1.dp,
+                if (selected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.12f),
+                SchemeShape,
             )
-            .clickable(onClick = onClick)
+            .clickable(interaction, indication = null, role = Role.RadioButton, onClick = onClick)
             .background(c(scheme.background))
-            .padding(10.dp),
+            .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -402,22 +418,21 @@ private fun LanguagePicker() {
     val context = LocalContext.current
     val activity = generateSequence(context) { (it as? ContextWrapper)?.baseContext }.filterIsInstance<Activity>().firstOrNull()
     val current = remember(context) { AppLanguages.current(context) }
-    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(stringResource(R.string.language), style = MaterialTheme.typography.bodyLarge)
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            AppLanguage.entries.forEachIndexed { index, language ->
-                SegmentedButton(
-                    selected = current == language,
-                    onClick = { if (language != current) activity?.let { AppLanguages.set(it, language) } },
-                    shape = SegmentedButtonDefaults.itemShape(index, AppLanguage.entries.size),
-                ) {
-                    Text(stringResource(when (language) {
-                        AppLanguage.System -> R.string.language_system
-                        AppLanguage.English -> R.string.language_english
-                        AppLanguage.Chinese -> R.string.language_chinese
-                    }))
-                }
-            }
-        }
+    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(stringResource(R.string.language), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        GlassSegmented(
+            options = AppLanguage.entries.map {
+                stringResource(when (it) {
+                    AppLanguage.System -> R.string.language_system
+                    AppLanguage.English -> R.string.language_english
+                    AppLanguage.Chinese -> R.string.language_chinese
+                })
+            },
+            selected = AppLanguage.entries.indexOf(current),
+            onSelect = { index ->
+                val language = AppLanguage.entries[index]
+                if (language != current) activity?.let { AppLanguages.set(it, language) }
+            },
+        )
     }
 }

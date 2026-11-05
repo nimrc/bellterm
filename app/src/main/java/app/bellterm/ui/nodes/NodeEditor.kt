@@ -4,7 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -13,31 +13,23 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -51,6 +43,12 @@ import app.bellterm.ui.components.ColorPicker
 import app.bellterm.ui.components.Group
 import app.bellterm.ui.components.NodeAvatar
 import app.bellterm.ui.components.SectionHeader
+import app.bellterm.ui.glass.GlassButton
+import app.bellterm.ui.glass.GlassField
+import app.bellterm.ui.glass.GlassScreen
+import app.bellterm.ui.glass.GlassSegmented
+import app.bellterm.ui.glass.MenuShape
+import app.bellterm.ui.glass.menuColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -82,92 +80,97 @@ fun NodeEditor(app: BelltermApp, initial: Node?, onDone: () -> Unit) {
         Node.validSession(session) && keepAliveValue != null
     val candidates = app.nodes.jumpCandidates(initial)
 
+    fun save() {
+        val saved = (initial ?: Node(name = "", address = "", user = "")).copy(
+            name = name.trim(),
+            address = address.trim(),
+            port = portValue ?: 22,
+            user = user.trim(),
+            session = session.trim(),
+            auth = auth,
+            identityId = identityId.takeIf { auth == AuthMethod.Key },
+            jumpId = jumpId,
+            group = group.trim(),
+            color = color,
+            keepAlive = keepAliveValue ?: 15,
+        )
+        app.nodes.upsert(saved)
+        val secret = password.takeIf { auth == AuthMethod.Password && it.isNotEmpty() }
+        val forget = auth != AuthMethod.Password || forgetPassword
+        app.scope.launch(Dispatchers.IO) {
+            when {
+                secret != null -> app.keychain.savePassword(saved.id, secret)
+                forget -> app.keychain.forgetPassword(saved.id)
+            }
+        }
+        onDone()
+    }
+
     BackHandler(onBack = onDone)
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(if (initial == null) R.string.add_node else R.string.edit_node)) },
-                navigationIcon = {
-                    IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) }
-                },
-                actions = {
-                    TextButton(
-                        enabled = valid,
-                        onClick = {
-                            val saved = (initial ?: Node(name = "", address = "", user = "")).copy(
-                                name = name.trim(),
-                                address = address.trim(),
-                                port = portValue ?: 22,
-                                user = user.trim(),
-                                session = session.trim(),
-                                auth = auth,
-                                identityId = identityId.takeIf { auth == AuthMethod.Key },
-                                jumpId = jumpId,
-                                group = group.trim(),
-                                color = color,
-                                keepAlive = keepAliveValue ?: 15,
-                            )
-                            app.nodes.upsert(saved)
-                            val secret = password.takeIf { auth == AuthMethod.Password && it.isNotEmpty() }
-                            val forget = auth != AuthMethod.Password || forgetPassword
-                            app.scope.launch(Dispatchers.IO) {
-                                when {
-                                    secret != null -> app.keychain.savePassword(saved.id, secret)
-                                    forget -> app.keychain.forgetPassword(saved.id)
-                                }
-                            }
-                            onDone()
-                        },
-                    ) {
-                        Icon(Icons.Default.Check, null, Modifier.size(18.dp))
-                        Spacer(Modifier.size(6.dp))
-                        Text(stringResource(R.string.save))
-                    }
-                },
+    GlassScreen(
+        title = stringResource(if (initial == null) R.string.add_node else R.string.edit_node),
+        onBack = onDone,
+        actions = {
+            GlassButton(
+                stringResource(R.string.save),
+                onClick = ::save,
+                primary = true,
+                enabled = valid,
+                icon = Icons.Default.Check,
+                modifier = Modifier.testTag("save"),
             )
         },
     ) { padding ->
-        Column(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
-            Row(
-                Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                NodeAvatar(name.ifBlank { address.ifBlank { "?" } }, color, size = 56.dp)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.color_label), style = MaterialTheme.typography.labelLarge)
-                    ColorPicker(color) { color = it }
+        Column(
+            Modifier
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding()),
+        ) {
+            Group {
+                Row(
+                    Modifier.padding(18.dp),
+                    horizontalArrangement = Arrangement.spacedBy(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    NodeAvatar(name.ifBlank { address.ifBlank { "?" } }, color, size = 64.dp)
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(stringResource(R.string.color_label), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ColorPicker(color) { color = it }
+                    }
                 }
             }
 
             SectionHeader(stringResource(R.string.section_connection))
             Fields {
-                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.node_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(
+                GlassField(name, { name = it }, label = { Text(stringResource(R.string.node_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("field:name"))
+                GlassField(
                     address, { address = it.trim() },
                     label = { Text(stringResource(R.string.host_address)) },
                     singleLine = true,
                     isError = address.isNotEmpty() && !Node.validAddress(address),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("field:address"),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
+                    GlassField(
                         user, { user = it.trim() },
                         label = { Text(stringResource(R.string.host_user)) },
                         singleLine = true,
                         isError = user.isNotEmpty() && !Node.validUser(user),
-                        modifier = Modifier.weight(2f),
+                        modifier = Modifier.weight(2f).testTag("field:user"),
                     )
-                    OutlinedTextField(
+                    GlassField(
                         port, { port = it.filter(Char::isDigit).take(5) },
                         label = { Text(stringResource(R.string.host_port)) },
                         singleLine = true,
                         isError = portValue == null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).testTag("field:port"),
                     )
                 }
-                OutlinedTextField(
+                GlassField(
                     session, { session = it.trim() },
                     label = { Text(stringResource(R.string.host_session)) },
                     supportingText = { Text(stringResource(R.string.host_session_help)) },
@@ -179,17 +182,11 @@ fun NodeEditor(app: BelltermApp, initial: Node?, onDone: () -> Unit) {
 
             SectionHeader(stringResource(R.string.section_sign_in))
             Fields {
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    AuthMethod.entries.forEachIndexed { index, method ->
-                        SegmentedButton(
-                            selected = auth == method,
-                            onClick = { auth = method },
-                            shape = SegmentedButtonDefaults.itemShape(index, AuthMethod.entries.size),
-                        ) {
-                            Text(stringResource(if (method == AuthMethod.Key) R.string.auth_key else R.string.auth_password))
-                        }
-                    }
-                }
+                GlassSegmented(
+                    options = AuthMethod.entries.map { stringResource(if (it == AuthMethod.Key) R.string.auth_key else R.string.auth_password) },
+                    selected = AuthMethod.entries.indexOf(auth),
+                    onSelect = { auth = AuthMethod.entries[it] },
+                )
                 if (auth == AuthMethod.Key) {
                     Picker(
                         label = stringResource(R.string.identity),
@@ -204,7 +201,7 @@ fun NodeEditor(app: BelltermApp, initial: Node?, onDone: () -> Unit) {
                     )
                     Hint(stringResource(R.string.auth_key_help))
                 } else {
-                    OutlinedTextField(
+                    GlassField(
                         password, { password = it },
                         label = { Text(stringResource(R.string.auth_password)) },
                         placeholder = { if (hasSaved) Text(stringResource(R.string.password_saved_placeholder)) },
@@ -215,7 +212,7 @@ fun NodeEditor(app: BelltermApp, initial: Node?, onDone: () -> Unit) {
                     )
                     Hint(stringResource(if (hasSaved) R.string.password_saved_help else R.string.password_unsaved_help))
                     if (hasSaved && password.isEmpty()) {
-                        TextButton(onClick = { forgetPassword = true }) { Text(stringResource(R.string.forget_password)) }
+                        GlassButton(stringResource(R.string.forget_password), onClick = { forgetPassword = true }, destructive = true)
                     }
                 }
             }
@@ -239,7 +236,7 @@ fun NodeEditor(app: BelltermApp, initial: Node?, onDone: () -> Unit) {
                     groups = nodes.map { it.group.trim() }.filter { it.isNotEmpty() }.distinct().sortedBy { it.lowercase() },
                     onChange = { group = it },
                 )
-                OutlinedTextField(
+                GlassField(
                     keepAlive, { keepAlive = it.filter(Char::isDigit).take(4) },
                     label = { Text(stringResource(R.string.keepalive)) },
                     supportingText = { Text(stringResource(R.string.keepalive_help)) },
@@ -256,7 +253,7 @@ fun NodeEditor(app: BelltermApp, initial: Node?, onDone: () -> Unit) {
 @Composable
 private fun Fields(content: @Composable () -> Unit) {
     Group {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { content() }
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { content() }
     }
 }
 
@@ -277,7 +274,7 @@ private fun Hint(text: String) {
 private fun GroupField(value: String, groups: List<String>, onChange: (String) -> Unit) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded && groups.isNotEmpty(), onExpandedChange = { expanded = it }) {
-        OutlinedTextField(
+        GlassField(
             value, onChange,
             label = { Text(stringResource(R.string.group)) },
             supportingText = { Text(stringResource(R.string.group_help)) },
@@ -285,7 +282,7 @@ private fun GroupField(value: String, groups: List<String>, onChange: (String) -
             singleLine = true,
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
         )
-        ExposedDropdownMenu(expanded = expanded && groups.isNotEmpty(), onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(expanded = expanded && groups.isNotEmpty(), onDismissRequest = { expanded = false }, shape = MenuShape, containerColor = menuColor()) {
             DropdownMenuItem(text = { Text(stringResource(R.string.no_group)) }, onClick = { onChange(""); expanded = false })
             groups.forEach { group ->
                 DropdownMenuItem(text = { Text(group) }, onClick = { onChange(group); expanded = false })
@@ -299,14 +296,14 @@ private fun GroupField(value: String, groups: List<String>, onChange: (String) -
 private fun <T> Picker(label: String, selected: String, options: List<Pair<T, String>>, onSelect: (T) -> Unit) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        OutlinedTextField(
+        GlassField(
             selected, {},
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, shape = MenuShape, containerColor = menuColor()) {
             options.forEach { (value, text) ->
                 DropdownMenuItem(text = { Text(text) }, onClick = { onSelect(value); expanded = false })
             }

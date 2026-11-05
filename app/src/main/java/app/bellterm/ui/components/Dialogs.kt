@@ -6,25 +6,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -34,10 +30,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.bellterm.R
 import app.bellterm.data.Node
+import app.bellterm.ui.glass.GlassAlertDialog
+import app.bellterm.ui.glass.GlassButton
+import app.bellterm.ui.glass.GlassField
 
 @Composable
 fun ConfirmDialog(title: String, text: String, confirm: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(text) },
@@ -60,11 +59,11 @@ fun TextDialog(
     var value by remember { mutableStateOf(initial) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDone,
         title = { Text(title) },
         text = {
-            OutlinedTextField(
+            GlassField(
                 value, { value = it },
                 label = label?.let { { Text(it) } },
                 singleLine = true,
@@ -92,17 +91,13 @@ fun HelpDialog(onDismiss: () -> Unit) {
         runCatching { uri.openUri(link) }
         onDismiss()
     }
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.help)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(onClick = { open(WEBSITE) }, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.visit_website))
-                }
-                Button(onClick = { open(DISCORD) }, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.join_discord))
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                GlassButton(stringResource(R.string.visit_website), onClick = { open(WEBSITE) }, modifier = Modifier.fillMaxWidth())
+                GlassButton(stringResource(R.string.join_discord), onClick = { open(DISCORD) }, primary = true, modifier = Modifier.fillMaxWidth())
                 Text(
                     stringResource(R.string.about_text, version),
                     style = MaterialTheme.typography.bodySmall,
@@ -127,13 +122,13 @@ fun PasswordsDialog(hops: List<Node>, onConnect: (Map<String, String>, Boolean) 
     var remember by remember { mutableStateOf(true) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.passwords_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 hops.forEachIndexed { index, node ->
-                    OutlinedTextField(
+                    GlassField(
                         secrets[node.id].orEmpty(), { secrets[node.id] = it },
                         label = { Text(node.destination) },
                         singleLine = true,

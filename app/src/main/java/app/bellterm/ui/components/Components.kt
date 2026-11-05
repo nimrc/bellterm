@@ -1,50 +1,70 @@
 package app.bellterm.ui.components
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.bellterm.ui.glass.GlassGroup
+import app.bellterm.ui.glass.GlassPill
+import app.bellterm.ui.glass.GlassSectionHeader
 import app.bellterm.ui.theme.NodeColors
 
-/** A node's initials on its colour label. */
+/** A node's initials on its colour label, as a lit squircle tile. */
 @Composable
-fun NodeAvatar(name: String, color: Int, size: Dp = 44.dp) {
+fun NodeAvatar(name: String, color: Int, size: Dp = 46.dp) {
     val background = NodeColors.of(color)
     val initials = name.split(' ', '-', '_', '.').filter { it.isNotBlank() }.take(2)
         .joinToString("") { it.first().uppercase() }.ifEmpty { "?" }
+    val shape = RoundedCornerShape(size * 0.34f)
     Box(
-        Modifier.size(size).clip(RoundedCornerShape(size * 0.32f)).background(background),
+        Modifier
+            .size(size)
+            .clip(shape)
+            .background(Brush.linearGradient(listOf(lerp(background, Color.White, 0.22f), background, lerp(background, Color.Black, 0.18f))))
+            .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color.White.copy(alpha = 0.05f))), shape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             initials,
             color = if (background.luminance() > 0.5f) Color(0xFF1B1B1B) else Color.White,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             fontSize = (size.value * 0.38f).sp,
         )
     }
@@ -52,42 +72,14 @@ fun NodeAvatar(name: String, color: Int, size: Dp = 44.dp) {
 
 /** A small tinted label: a route, a certificate, a status. */
 @Composable
-fun Pill(text: String, color: Color, modifier: Modifier = Modifier, dot: Boolean = false) {
-    Row(
-        modifier
-            .clip(CircleShape)
-            .background(color.copy(alpha = 0.16f))
-            .padding(horizontal = 10.dp, vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        if (dot) Box(Modifier.size(7.dp).clip(CircleShape).background(color))
-        Text(text, color = color, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
+fun Pill(text: String, color: Color, modifier: Modifier = Modifier, dot: Boolean = false) = GlassPill(text, color, modifier, dot)
 
 @Composable
-fun SectionHeader(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.primary,
-        letterSpacing = 1.2.sp,
-        modifier = modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
-    )
-}
+fun SectionHeader(text: String, modifier: Modifier = Modifier) = GlassSectionHeader(text, modifier)
 
-/** A rounded group of rows, the container every settings-like list uses. */
+/** A rounded glass group of rows, the container every settings-like list uses. */
 @Composable
-fun Group(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Surface(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Column { content() }
-    }
-}
+fun Group(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) = GlassGroup(modifier, content)
 
 /** One row of a [Group]: title, optional detail, optional leading and trailing content. */
 @Composable
@@ -96,19 +88,21 @@ fun ItemRow(
     detail: String? = null,
     onClick: (() -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
+    chevron: Boolean = false,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Row(
         Modifier
             .fillMaxWidth()
-            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .heightIn(min = 60.dp)
+            .let { if (onClick != null) it.clickable(onClick = onClick, role = Role.Button) else it }
+            .padding(horizontal = 18.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         leading?.invoke()
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             detail?.let {
                 Text(
                     it,
@@ -120,25 +114,38 @@ fun ItemRow(
             }
         }
         trailing?.invoke(this)
+        if (chevron) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 
-/** The node colour labels as tappable swatches, wrapping on narrow screens. */
+/** The node colour labels as tappable swatches; the chosen one grows a ring and a check. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ColorPicker(selected: Int, onSelect: (Int) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         NodeColors.all.forEachIndexed { index, color ->
+            val chosen = index == selected
+            val ring by animateDpAsState(if (chosen) 3.dp else 0.dp, label = "ring")
             Box(
                 Modifier
-                    .size(32.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
-                    .background(color)
-                    .let {
-                        if (index == selected) it.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else it
-                    }
-                    .clickable { onSelect(index) },
-            )
+                    .border(ring, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f), CircleShape)
+                    .padding(ring + if (chosen) 2.dp else 0.dp)
+                    .clip(CircleShape)
+                    .background(Brush.linearGradient(listOf(lerp(color, Color.White, 0.2f), color)))
+                    .clickable(remember { MutableInteractionSource() }, indication = null, role = Role.RadioButton) { onSelect(index) },
+                contentAlignment = Alignment.Center,
+            ) {
+                if (chosen) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(16.dp))
+            }
         }
     }
 }

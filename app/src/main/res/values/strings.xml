@@ -47,6 +47,9 @@
     <string name="delete_node_title">Delete %1$s?</string>
     <string name="delete_node_text">Only the saved node is removed. Herdr and everything running on the host are untouched; nodes that jumped through it will connect directly.</string>
     <string name="no_nodes_title">No nodes yet</string>
+    <string name="no_nodes_text">Add a host that runs Herdr, or import the hosts in your ~/.ssh/config.</string>
+    <string name="no_matches">No nodes match</string>
+    <string name="clear">Clear</string>
     <string name="via_jump">via %1$s</string>
     <string name="certificate">Certificate</string>
     <string name="import_ssh_config">Import SSH config</string>
@@ -218,5 +221,9 @@
     <plurals name="attached_hosts">
         <item quantity="one">Attached to %d node</item>
         <item quantity="other">Attached to %d nodes</item>
+    </plurals>
+    <plurals name="node_count">
+        <item quantity="one">%1$d node</item>
+        <item quantity="other">%1$d nodes</item>
     </plurals>
 </resources>

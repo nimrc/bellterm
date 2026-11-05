@@ -5,51 +5,67 @@ import android.content.ClipboardManager
 import android.os.Build
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.PrimaryScrollableTabRow
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.ui.graphics.Color
-import app.bellterm.ui.theme.NodeColors
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -61,25 +77,52 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import app.bellterm.BelltermApp
 import app.bellterm.R
+import app.bellterm.core.AgentStatus
 import app.bellterm.core.Connection
 import app.bellterm.core.Native
 import app.bellterm.core.RenderFrame
+import app.bellterm.core.Tab
 import app.bellterm.data.AuthMethod
 import app.bellterm.data.Node
 import app.bellterm.ui.components.PasswordsDialog
-import app.bellterm.ui.terminal.TerminalTypefaces
-import app.bellterm.ui.theme.TerminalSchemes
+import app.bellterm.ui.glass.GlassButton
+import app.bellterm.ui.glass.GlassIconButton
+import app.bellterm.ui.glass.GlassMenu
+import app.bellterm.ui.glass.GlassSnackbarHost
+import app.bellterm.ui.glass.GroupShape
+import app.bellterm.ui.glass.IconBadge
+import app.bellterm.ui.glass.LocalGlassBackdrop
+import app.bellterm.ui.glass.LocalGlassStyle
+import app.bellterm.ui.glass.captureBackdrop
+import app.bellterm.ui.glass.glass
 import app.bellterm.ui.terminal.DefaultExtraKeys
 import app.bellterm.ui.terminal.ExtraKeysRow
+import app.bellterm.ui.terminal.TerminalTypefaces
 import app.bellterm.ui.terminal.TerminalView
+import app.bellterm.ui.theme.NodeColors
+import app.bellterm.ui.theme.TerminalSchemes
+import app.bellterm.ui.theme.color
+import io.github.suqi8.coui.kmp.blur.rememberLayerBackdrop
 import kotlinx.coroutines.launch
 
 /** What a confirmation or text dialog is for. */
@@ -165,52 +208,96 @@ fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, 
     val tab = view?.tab
     val focusedPane = frame?.panes?.firstOrNull { it.focused }?.id ?: view?.focusedPane
 
+    val chromeColor = Color(0xff000000 or scheme.background)
+    val chrome = rememberLayerBackdrop()
+
     ModalNavigationDrawer(
         drawerState = drawer,
         gesturesEnabled = drawer.isOpen,
+        scrimColor = Color.Black.copy(alpha = 0.4f),
         drawerContent = {
             SessionDrawer(
                 node = node,
                 view = view,
+                state = state,
+                accent = accent,
                 onWorkspace = { connection.focusWorkspace(it.id); scope.launch { drawer.close() } },
                 onAgent = { connection.focusPane(it.pane); scope.launch { drawer.close() } },
                 onNewWorkspace = { connection.newWorkspace(workspace?.id); scope.launch { drawer.close() } },
             )
         },
     ) {
-        Scaffold(
-            // The column below pads for the keyboard and navigation bar itself.
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            snackbarHost = { SnackbarHost(snackbar) },
-            topBar = {
-                Column(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
-                    TopAppBar(
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                        navigationIcon = {
-                            IconButton(onClick = { terminal?.hideKeyboard(); scope.launch { drawer.open() } }) {
-                                Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.workspaces))
-                            }
+        Column(Modifier.fillMaxSize().background(chromeColor).imePadding()) {
+            // The header draws its own glow and lends it to the glass controls on it.
+            Box {
+                Box(
+                    Modifier
+                        .matchParentSize()
+                        .captureBackdrop(chrome)
+                        .drawBehind {
+                            drawRect(chromeColor)
+                            drawCircle(
+                                Brush.radialGradient(
+                                    listOf(accent.copy(alpha = if (dark) 0.34f else 0.26f), Color.Transparent),
+                                    center = Offset(size.width * 0.12f, 0f),
+                                    radius = size.width * 0.7f,
+                                ),
+                                radius = size.width * 0.7f,
+                                center = Offset(size.width * 0.12f, 0f),
+                            )
+                            drawCircle(
+                                Brush.radialGradient(
+                                    listOf(accent.copy(alpha = if (dark) 0.16f else 0.12f), Color.Transparent),
+                                    center = Offset(size.width, size.height),
+                                    radius = size.width * 0.5f,
+                                ),
+                                radius = size.width * 0.5f,
+                                center = Offset(size.width, size.height),
+                            )
                         },
-                        title = {
-                            Column {
-                                Text(workspace?.label ?: node.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                val detail = listOfNotNull(workspace?.branch, view?.panes?.firstOrNull { it.id == focusedPane }?.cwd)
-                                if (detail.isNotEmpty()) {
+                )
+                CompositionLocalProvider(LocalGlassBackdrop provides chrome) {
+                    Column(Modifier.statusBarsPadding()) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            GlassIconButton(
+                                Icons.Default.Menu,
+                                stringResource(R.string.workspaces),
+                                onClick = { terminal?.hideKeyboard(); scope.launch { drawer.open() } },
+                                modifier = Modifier.testTag("session:drawer"),
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    ConnectionDot(state)
                                     Text(
-                                        detail.joinToString(" · "),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        workspace?.label ?: node.title,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.testTag("session:title"),
                                     )
                                 }
+                                val detail = listOfNotNull(workspace?.branch, view?.panes?.firstOrNull { it.id == focusedPane }?.cwd)
+                                Text(
+                                    detail.joinToString(" · ").ifEmpty { node.destination },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
                             }
-                        },
-                        actions = {
                             Box {
-                                IconButton(onClick = { menu = true }) {
-                                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more))
-                                }
+                                GlassIconButton(
+                                    Icons.Default.MoreVert,
+                                    stringResource(R.string.more),
+                                    onClick = { menu = true },
+                                    modifier = Modifier.testTag("session:more"),
+                                )
                                 SessionMenu(
                                     expanded = menu,
                                     onDismiss = { menu = false },
@@ -227,51 +314,33 @@ fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, 
                                     onDisconnect = { app.disconnect(node.id); onLeave() },
                                 )
                             }
-                        },
-                    )
-                    if (tabs.isNotEmpty()) {
-                        val selected = tabs.indexOfFirst { it.id == tab?.id }.coerceAtLeast(0)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            PrimaryScrollableTabRow(
-                                selectedTabIndex = selected,
-                                edgePadding = 8.dp,
-                                modifier = Modifier.weight(1f),
-                                containerColor = Color.Transparent,
-                                indicator = {
-                                    TabRowDefaults.PrimaryIndicator(
-                                        Modifier.tabIndicatorOffset(selected, matchContentSize = true),
-                                        width = Dp.Unspecified,
-                                        color = accent,
-                                    )
-                                },
-                                divider = {},
-                            ) {
-                                tabs.forEach { t ->
-                                    Tab(
-                                        selected = t.id == tab?.id,
-                                        onClick = { connection.focusTab(t.id) },
-                                        text = { TabLabel(t.label, t.status) },
-                                        selectedContentColor = accent,
-                                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                            IconButton(onClick = { workspace?.let { prompt = Prompt.NewTab(it.id) } }) {
-                                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_tab))
-                            }
+                        }
+                        if (tabs.isNotEmpty()) {
+                            TabStrip(
+                                tabs = tabs,
+                                selectedId = tab?.id,
+                                accent = accent,
+                                dark = dark,
+                                onTab = { connection.focusTab(it) },
+                                onNewTab = { workspace?.let { prompt = Prompt.NewTab(it.id) } },
+                            )
                         }
                     }
-                    Box(Modifier.fillMaxWidth().height(2.dp).background(accent))
                 }
-            },
-        ) { padding ->
-            Column(Modifier.padding(padding).fillMaxSize().imePadding()) {
-                Box(Modifier.weight(1f).fillMaxWidth()) {
-                    // A reconnect is a new Connection: rebuild the view so its
-                    // listener never feeds a closed one.
-                    key(connection) {
+            }
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Brush.horizontalGradient(listOf(accent.copy(alpha = 0.8f), accent.copy(alpha = 0.15f), Color.Transparent))),
+            )
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                // A reconnect is a new Connection: rebuild the view so its
+                // listener never feeds a closed one.
+                key(connection) {
                     AndroidView(
-                        modifier = Modifier.fillMaxSize(),
+                        // TerminalView fills its canvas with drawColor; unclipped it would paint over the header.
+                        modifier = Modifier.fillMaxSize().clipToBounds().testTag("terminal"),
                         factory = { ctx ->
                             TerminalView(ctx).also { view ->
                                 view.fontSizeSp = app.settings.settings.value.fontSize
@@ -285,36 +354,42 @@ fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, 
                             view.frame = frame
                         },
                     )
-                    }
-                    if (state is Connection.State.Connecting) {
-                        LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
-                    }
-                    // The node behind a rejected sign-in, so its password can be asked again.
-                    val rejected = (state as? Connection.State.AuthRejected)?.let { rejection ->
-                        app.nodes.route(app.nodes.get(node.id) ?: node).getOrNull()?.getOrNull(rejection.hop)
-                    }
-                    StateCard(
-                        state = state,
-                        rejectedPassword = rejected?.auth == AuthMethod.Password,
-                        onRetry = ::retry,
-                        onSignIn = { rejected?.let { askPasswords = listOf(it) } },
-                        onTrust = { trusted ->
-                            app.nodes.trust(trusted.host, trusted.fingerprint)
-                            retry()
-                        },
-                        onLeave = { app.disconnect(node.id); onLeave() },
-                        modifier = Modifier.align(Alignment.Center),
+                }
+                if (state is Connection.State.Connecting) {
+                    LinearProgressIndicator(
+                        Modifier.fillMaxWidth().height(2.dp).align(Alignment.TopCenter),
+                        color = accent,
+                        trackColor = Color.Transparent,
                     )
                 }
-                ExtraKeysRow(
-                    keys = DefaultExtraKeys,
-                    latched = latched,
-                    onLatch = { latched = it; terminal?.latchedMeta = it },
-                    onKey = { code, repeat -> terminal?.sendKey(code, 0, 0, repeat) },
-                    onText = { connection.text(focusedPane, it) },
-                    modifier = Modifier.navigationBarsPadding(),
+                // The node behind a rejected sign-in, so its password can be asked again.
+                val rejected = (state as? Connection.State.AuthRejected)?.let { rejection ->
+                    app.nodes.route(app.nodes.get(node.id) ?: node).getOrNull()?.getOrNull(rejection.hop)
+                }
+                StateCard(
+                    state = state,
+                    accent = accent,
+                    rejectedPassword = rejected?.auth == AuthMethod.Password,
+                    onRetry = ::retry,
+                    onSignIn = { rejected?.let { askPasswords = listOf(it) } },
+                    onTrust = { trusted ->
+                        app.nodes.trust(trusted.host, trusted.fingerprint)
+                        retry()
+                    },
+                    onLeave = { app.disconnect(node.id); onLeave() },
                 )
+                GlassSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
             }
+            ExtraKeysRow(
+                keys = DefaultExtraKeys,
+                latched = latched,
+                accent = accent,
+                background = chromeColor,
+                onLatch = { latched = it; terminal?.latchedMeta = it },
+                onKey = { code, repeat -> terminal?.sendKey(code, 0, 0, repeat) },
+                onText = { connection.text(focusedPane, it) },
+                modifier = Modifier.navigationBarsPadding(),
+            )
         }
     }
 
@@ -404,46 +479,145 @@ private fun SessionMenu(
     onLeave: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
-    fun item(label: Int, enabled: Boolean = true, run: () -> Unit): @Composable () -> Unit = {
+    @Composable
+    fun item(label: Int, icon: ImageVector, enabled: Boolean = true, destructive: Boolean = false, run: () -> Unit) {
+        val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
         DropdownMenuItem(
-            text = { Text(stringResource(label)) },
+            text = { Text(stringResource(label), color = if (enabled) color else color.copy(alpha = 0.38f)) },
+            leadingIcon = { Icon(icon, null, tint = (if (enabled) color else color.copy(alpha = 0.38f)).copy(alpha = 0.8f), modifier = Modifier.size(20.dp)) },
             enabled = enabled,
             onClick = { onDismiss(); run() },
+            contentPadding = PaddingValues(horizontal = 18.dp),
         )
     }
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        item(R.string.paste) { onPaste() }()
-        HorizontalDivider()
-        item(R.string.split_right, pane != null) { pane?.let { connection.split(it, "right") } }()
-        item(R.string.split_down, pane != null) { pane?.let { connection.split(it, "down") } }()
-        item(if (zoomed) R.string.unzoom_pane else R.string.zoom_pane, pane != null) { pane?.let(connection::toggleZoom) }()
-        item(R.string.close_pane, pane != null) { pane?.let { onPrompt(Prompt.ClosePane(it)) } }()
-        HorizontalDivider()
-        item(R.string.new_tab, workspaceId != null) { workspaceId?.let(connection::newTab) }()
-        item(R.string.rename_tab, tabId != null) { tabId?.let { onPrompt(Prompt.RenameTab(it, tabLabel.orEmpty())) } }()
-        item(R.string.close_tab, tabId != null) { tabId?.let { onPrompt(Prompt.CloseTab(it, tabLabel.orEmpty())) } }()
-        HorizontalDivider()
-        item(R.string.rename_workspace, workspaceId != null) {
+
+    @Composable
+    fun divider() = HorizontalDivider(Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+    GlassMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        item(R.string.paste, Icons.Default.Create) { onPaste() }
+        divider()
+        item(R.string.split_right, Icons.AutoMirrored.Filled.KeyboardArrowRight, pane != null) { pane?.let { connection.split(it, "right") } }
+        item(R.string.split_down, Icons.Default.KeyboardArrowDown, pane != null) { pane?.let { connection.split(it, "down") } }
+        item(if (zoomed) R.string.unzoom_pane else R.string.zoom_pane, Icons.Default.Search, pane != null) { pane?.let(connection::toggleZoom) }
+        item(R.string.close_pane, Icons.Default.Close, pane != null, destructive = true) { pane?.let { onPrompt(Prompt.ClosePane(it)) } }
+        divider()
+        item(R.string.new_tab, Icons.Default.Add, workspaceId != null) { workspaceId?.let(connection::newTab) }
+        item(R.string.rename_tab, Icons.Default.Edit, tabId != null) { tabId?.let { onPrompt(Prompt.RenameTab(it, tabLabel.orEmpty())) } }
+        item(R.string.close_tab, Icons.Default.Close, tabId != null, destructive = true) { tabId?.let { onPrompt(Prompt.CloseTab(it, tabLabel.orEmpty())) } }
+        divider()
+        item(R.string.rename_workspace, Icons.Default.Edit, workspaceId != null) {
             workspaceId?.let { onPrompt(Prompt.RenameWorkspace(it, workspaceLabel.orEmpty())) }
-        }()
-        item(R.string.close_workspace, workspaceId != null) {
+        }
+        item(R.string.close_workspace, Icons.Default.Delete, workspaceId != null, destructive = true) {
             workspaceId?.let { onPrompt(Prompt.CloseWorkspace(it, workspaceLabel.orEmpty())) }
-        }()
-        HorizontalDivider()
-        item(R.string.nodes) { onLeave() }()
-        item(R.string.disconnect) { onDisconnect() }()
+        }
+        divider()
+        item(R.string.nodes, Icons.Default.Home) { onLeave() }
+        item(R.string.disconnect, Icons.AutoMirrored.Filled.ExitToApp, destructive = true) { onDisconnect() }
+    }
+}
+
+/** A dot for the connection: green attached, pulsing blue while connecting, red otherwise. */
+@Composable
+private fun ConnectionDot(state: Connection.State) {
+    val color = when (state) {
+        is Connection.State.Connected -> AgentStatus.Done.color()
+        is Connection.State.Connecting -> AgentStatus.Working.color()
+        else -> MaterialTheme.colorScheme.error
+    }
+    val pulse = if (state is Connection.State.Connecting) {
+        rememberInfiniteTransition(label = "pulse").animateFloat(
+            initialValue = 0.35f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse),
+            label = "alpha",
+        ).value
+    } else {
+        1f
+    }
+    Box(
+        Modifier
+            .size(9.dp)
+            .graphicsLayer { alpha = pulse }
+            .clip(CircleShape)
+            .background(color)
+            .testTag("session:state:" + state::class.simpleName),
+    )
+}
+
+/** The focused workspace's tabs as pills in a glass track; the chosen one wears the node's colour. */
+@Composable
+private fun TabStrip(
+    tabs: List<Tab>,
+    selectedId: String?,
+    accent: Color,
+    dark: Boolean,
+    onTab: (String) -> Unit,
+    onNewTab: () -> Unit,
+) {
+    val list = rememberLazyListState()
+    val selected = tabs.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
+    LaunchedEffect(selected, tabs.size) { list.animateScrollToItem(selected) }
+    val accentText = if (dark) lerp(accent, Color.White, 0.35f) else lerp(accent, Color.Black, 0.2f)
+    Row(
+        Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        LazyRow(
+            state = list,
+            modifier = Modifier
+                .weight(1f)
+                .height(40.dp)
+                .glass(CircleShape, highlight = LocalGlassStyle.current.smallHighlight)
+                .padding(3.dp)
+                .testTag("session:tabs"),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            itemsIndexed(tabs, key = { _, t -> t.id }) { _, t ->
+                val chosen = t.id == selectedId
+                val fill by animateColorAsState(if (chosen) accent.copy(alpha = if (dark) 0.3f else 0.18f) else Color.Transparent, label = "tab")
+                val text by animateColorAsState(if (chosen) accentText else MaterialTheme.colorScheme.onSurfaceVariant, label = "tabText")
+                Row(
+                    Modifier
+                        .fillMaxHeight()
+                        .widthIn(min = 52.dp)
+                        .clip(CircleShape)
+                        .background(fill)
+                        .clickable(role = Role.Tab) { onTab(t.id) }
+                        .padding(horizontal = 14.dp)
+                        .testTag("tab:${t.label}"),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                ) {
+                    if (t.status != AgentStatus.Unknown) {
+                        Box(Modifier.size(7.dp).clip(CircleShape).background(t.status.color()))
+                    }
+                    Text(
+                        t.label,
+                        color = text,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+        GlassIconButton(Icons.Default.Add, stringResource(R.string.new_tab), onClick = onNewTab, size = 40.dp, modifier = Modifier.testTag("session:new_tab"))
     }
 }
 
 @Composable
 private fun StateCard(
     state: Connection.State,
+    accent: Color,
     rejectedPassword: Boolean,
     onRetry: () -> Unit,
     onSignIn: () -> Unit,
     onTrust: (Connection.State.UntrustedHostKey) -> Unit,
     onLeave: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val (title, body) = when (state) {
         is Connection.State.Connecting, is Connection.State.Connected -> return
@@ -470,23 +644,54 @@ private fun StateCard(
             state.fingerprint,
         )
     }
-    Card(modifier.padding(24.dp)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(body, style = MaterialTheme.typography.bodyMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                when (state) {
-                    is Connection.State.UntrustedHostKey -> Button(onClick = { onTrust(state) }) {
-                        Text(stringResource(R.string.trust_and_connect))
-                    }
+    val warning = state is Connection.State.UntrustedHostKey && state.changed
+    val (icon, tone) = when (state) {
+        is Connection.State.UntrustedHostKey -> Icons.Default.Lock to if (warning) MaterialTheme.colorScheme.error else accent
+        is Connection.State.AuthRejected -> Icons.Default.Lock to MaterialTheme.colorScheme.error
+        is Connection.State.Incompatible -> Icons.Default.Warning to AgentStatus.Blocked.color()
+        else -> Icons.Default.Refresh to MaterialTheme.colorScheme.error
+    }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.45f))
+            .clickable(remember { MutableInteractionSource() }, indication = null) {}
+            .padding(20.dp)
+            .testTag("session:state_card"),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            Modifier
+                .widthIn(max = 460.dp)
+                .fillMaxWidth()
+                .glass(GroupShape, tint = LocalGlassStyle.current.strongTint, shadow = true)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                IconBadge(icon, tone, Modifier.size(44.dp))
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 4.dp)) {
+                GlassButton(stringResource(R.string.nodes), onClick = onLeave, modifier = Modifier.weight(1f))
+                val (label, action) = when (state) {
+                    is Connection.State.UntrustedHostKey -> stringResource(R.string.trust_and_connect) to { onTrust(state) }
                     is Connection.State.AuthRejected -> if (rejectedPassword) {
-                        Button(onClick = onSignIn) { Text(stringResource(R.string.enter_password)) }
+                        stringResource(R.string.enter_password) to onSignIn
                     } else {
-                        Button(onClick = onRetry) { Text(stringResource(R.string.reconnect)) }
+                        stringResource(R.string.reconnect) to onRetry
                     }
-                    else -> Button(onClick = onRetry) { Text(stringResource(R.string.reconnect)) }
+                    else -> stringResource(R.string.reconnect) to onRetry
                 }
-                OutlinedButton(onClick = onLeave) { Text(stringResource(R.string.nodes)) }
+                GlassButton(
+                    label,
+                    onClick = action,
+                    primary = true,
+                    accent = if (warning) MaterialTheme.colorScheme.error else accent,
+                    modifier = Modifier.weight(1.4f).testTag("session:primary_action"),
+                )
             }
         }
     }

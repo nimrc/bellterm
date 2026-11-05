@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose {}
             }
-            BelltermTheme(dark = dark, dynamic = settings.dynamicColor) {
+            BelltermTheme(dark = dark) {
                 // Test tags double as resource ids, so UiAutomator end-to-end tests can find them.
                 Box(Modifier.semantics { testTagsAsResourceId = true }) {
                     Root(app, dark)

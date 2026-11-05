@@ -31,9 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +44,7 @@ import app.bellterm.ui.glass.GlassPill
 import app.bellterm.ui.glass.GlassSectionHeader
 import app.bellterm.ui.theme.NodeColors
 
-/** A node's initials on its colour label, as a lit squircle tile. */
+/** A node's initials on its colour label. */
 @Composable
 fun NodeAvatar(name: String, color: Int, size: Dp = 46.dp) {
     val background = NodeColors.of(color)
@@ -57,8 +55,8 @@ fun NodeAvatar(name: String, color: Int, size: Dp = 46.dp) {
         Modifier
             .size(size)
             .clip(shape)
-            .background(Brush.linearGradient(listOf(lerp(background, Color.White, 0.22f), background, lerp(background, Color.Black, 0.18f))))
-            .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color.White.copy(alpha = 0.05f))), shape),
+            .background(background)
+            .border(1.dp, Color.White.copy(alpha = 0.18f), shape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -140,7 +138,7 @@ fun ColorPicker(selected: Int, onSelect: (Int) -> Unit) {
                     .border(ring, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f), CircleShape)
                     .padding(ring + if (chosen) 2.dp else 0.dp)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(lerp(color, Color.White, 0.2f), color)))
+                    .background(color)
                     .clickable(remember { MutableInteractionSource() }, indication = null, role = Role.RadioButton) { onSelect(index) },
                 contentAlignment = Alignment.Center,
             ) {

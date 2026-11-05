@@ -9,8 +9,6 @@ enum class ThemeMode { System, Light, Dark }
 /** App preferences, observed by the UI and applied live. */
 data class Settings(
     val themeMode: ThemeMode = ThemeMode.System,
-    /** Material You colours from the wallpaper, where the device has them. */
-    val dynamicColor: Boolean = false,
     val darkScheme: String = "bellterm-dark",
     val lightScheme: String = "bellterm-light",
     val font: String = "jetbrains-mono",
@@ -28,7 +26,6 @@ class SettingsStore(context: Context) {
         val d = Settings()
         return Settings(
             themeMode = runCatching { ThemeMode.valueOf(prefs.getString("theme_mode", d.themeMode.name)!!) }.getOrDefault(d.themeMode),
-            dynamicColor = prefs.getBoolean("dynamic_color", d.dynamicColor),
             darkScheme = prefs.getString("dark_scheme", d.darkScheme)!!,
             lightScheme = prefs.getString("light_scheme", d.lightScheme)!!,
             font = prefs.getString("font", d.font)!!,
@@ -42,7 +39,6 @@ class SettingsStore(context: Context) {
         val next = change(_settings.value)
         prefs.edit()
             .putString("theme_mode", next.themeMode.name)
-            .putBoolean("dynamic_color", next.dynamicColor)
             .putString("dark_scheme", next.darkScheme)
             .putString("light_scheme", next.lightScheme)
             .putString("font", next.font)

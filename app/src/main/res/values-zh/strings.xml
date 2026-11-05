@@ -183,8 +183,6 @@
     <string name="language_system">跟随系统</string>
     <string name="theme_light">浅色</string>
     <string name="theme_dark">深色</string>
-    <string name="dynamic_color">壁纸取色</string>
-    <string name="dynamic_color_help">使用 Material You 动态配色，代替 Bellterm 的黄铜与石板配色。</string>
     <string name="dark_scheme">终端配色 · 深色</string>
     <string name="light_scheme">终端配色 · 浅色</string>
     <string name="section_font">终端字体</string>

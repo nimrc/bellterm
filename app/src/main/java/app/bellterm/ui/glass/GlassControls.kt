@@ -57,7 +57,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.luminance
@@ -112,7 +111,7 @@ fun GlassScreen(
 
     Box(modifier.fillMaxSize().background(style.base)) {
         Box(Modifier.fillMaxSize().captureBackdrop(page)) {
-            AmbientBackground(Modifier.captureBackdrop(ambient))
+            Box(Modifier.fillMaxSize().captureBackdrop(ambient).background(style.base))
             CompositionLocalProvider(LocalGlassBackdrop provides ambient) {
                 content(
                     PaddingValues(
@@ -142,9 +141,7 @@ fun GlassScreen(
                             colors = BlurColors(blendColors = listOf(BlendColorEntry(style.base.copy(alpha = if (style.dark) 0.55f else 0.5f)))),
                         )
                     } else {
-                        it.background(
-                            Brush.verticalGradient(listOf(style.base.copy(alpha = 0.96f), style.base.copy(alpha = 0.85f), style.base.copy(alpha = 0f))),
-                        )
+                        it.background(style.base.copy(alpha = 0.96f))
                     }
                 },
         )
@@ -423,7 +420,7 @@ fun IconBadge(icon: ImageVector, color: Color, modifier: Modifier = Modifier) {
         modifier
             .size(34.dp)
             .clip(RoundedCornerShape(11.dp))
-            .background(Brush.linearGradient(listOf(color, color.copy(alpha = 0.78f)))),
+            .background(color),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, null, tint = Color.White, modifier = Modifier.size(19.dp))

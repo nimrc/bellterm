@@ -2,12 +2,10 @@ package app.bellterm.ui.glass
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -19,8 +17,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.dropShadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.compositeOver
@@ -141,30 +137,3 @@ fun Modifier.pressScale(interaction: InteractionSource, pressed: Float = 0.95f):
     }
 }
 
-/**
- * The colour field glass refracts: the theme's background with soft light
- * pools in the primary, tertiary, and secondary colours. [accent] tints the
- * first pool, so a session wears its node's colour.
- */
-@Composable
-fun AmbientBackground(modifier: Modifier = Modifier, accent: Color? = null) {
-    val style = LocalGlassStyle.current
-    val scheme = MaterialTheme.colorScheme
-    val strength = if (style.dark) 0.42f else 0.55f
-    val first = (accent ?: scheme.primary).copy(alpha = strength)
-    val second = scheme.tertiary.copy(alpha = strength * 0.7f)
-    val third = scheme.secondary.copy(alpha = strength * 0.6f)
-    Canvas(modifier.fillMaxSize()) {
-        drawRect(style.base)
-        fun pool(center: Offset, radius: Float, color: Color) = drawCircle(
-            Brush.radialGradient(listOf(color, color.copy(alpha = 0f)), center = center, radius = radius),
-            radius = radius,
-            center = center,
-        )
-        val w = size.width
-        val h = size.height
-        pool(Offset(w * 0.1f, h * 0.06f), w * 0.95f, first)
-        pool(Offset(w * 1.0f, h * 0.38f), w * 0.8f, second)
-        pool(Offset(w * 0.2f, h * 0.92f), w * 0.9f, third)
-    }
-}

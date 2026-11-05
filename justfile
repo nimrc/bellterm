@@ -16,6 +16,7 @@ format:
 # am instrument exits 0 on failures too, so success is read from its summary.
 e2e host="" port="22" user="" fingerprint="":
     ./gradlew installDebug installDebugAndroidTest
+    adb shell rm -rf /sdcard/Android/data/app.bellterm/files/e2e
     adb shell am instrument -w -r \
         {{ if host != "" { "-e host " + host + " -e port " + port + " -e user " + user } else { "" } }} \
         {{ if fingerprint != "" { "-e fingerprint " + fingerprint } else { "" } }} \

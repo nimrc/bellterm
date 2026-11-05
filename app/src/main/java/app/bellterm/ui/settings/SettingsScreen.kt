@@ -2,7 +2,6 @@ package app.bellterm.ui.settings
 
 import android.app.Activity
 import android.content.ContextWrapper
-import android.os.Build
 import android.provider.OpenableColumns
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -30,7 +29,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
@@ -141,16 +139,6 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
                     }
                     GlassDivider()
                     LanguagePicker()
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        GlassDivider()
-                        ItemRow(
-                            title = stringResource(R.string.dynamic_color),
-                            detail = stringResource(R.string.dynamic_color_help),
-                            leading = { IconBadge(Icons.Default.Favorite, Color(0xFFE5508A)) },
-                            onClick = { app.settings.update { it.copy(dynamicColor = !it.dynamicColor) } },
-                            trailing = { Switch(settings.dynamicColor, { on -> app.settings.update { it.copy(dynamicColor = on) } }) },
-                        )
-                    }
                 }
             }
 

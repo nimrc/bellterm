@@ -1,18 +1,13 @@
 package app.bellterm.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -93,15 +88,8 @@ private val BelltermTypography = Typography().let { base ->
 }
 
 @Composable
-fun BelltermTheme(dark: Boolean, dynamic: Boolean, content: @Composable () -> Unit) {
-    val context = LocalContext.current
-    val scheme: ColorScheme = when {
-        dynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-            if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        dark -> DarkScheme
-        else -> LightScheme
-    }
-    MaterialTheme(colorScheme = scheme, shapes = BelltermShapes, typography = BelltermTypography) {
+fun BelltermTheme(dark: Boolean, content: @Composable () -> Unit) {
+    MaterialTheme(colorScheme = if (dark) DarkScheme else LightScheme, shapes = BelltermShapes, typography = BelltermTypography) {
         GlassTheme(dark = dark, content = content)
     }
 }

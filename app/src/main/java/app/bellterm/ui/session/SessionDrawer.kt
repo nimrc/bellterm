@@ -25,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -74,7 +73,7 @@ fun SessionDrawer(
                         .padding(top = 20.dp, bottom = 12.dp)
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(24.dp))
-                        .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.22f), accent.copy(alpha = 0.06f))))
+                        .background(accent.copy(alpha = 0.16f))
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp),

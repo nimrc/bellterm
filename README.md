@@ -56,13 +56,13 @@ loader only supports from Android 10.
 ### Appearance
 
 - Liquid glass in the style of ColorOS 16, built on
-  [coui-blur](https://github.com/suqi8/coui): screens float frosted cards,
-  capsule toolbars, and a progressively blurred top bar over soft light
-  pools, with bloom highlights on glass rims and refraction on primary
-  buttons. Below Android 13, which lacks the shaders, the same surfaces are
-  drawn as dense tints.
-- Bellterm's own brass-and-slate palette in light and dark, or Material You
-  wallpaper colours; light/dark follows the system or is fixed.
+  [coui-blur](https://github.com/suqi8/coui): frosted cards, capsule
+  toolbars, and a progressively blurred top bar over flat colours, with bloom
+  highlights on glass rims and refraction on primary buttons. Below
+  Android 13, which lacks the shaders, the same surfaces are drawn as dense
+  tints.
+- Bellterm's own brass-and-slate palette in light and dark; light/dark
+  follows the system or is fixed.
 - English and Simplified Chinese. **Settings > Language** follows the system by
   default (any Chinese system locale gets Chinese) or pins one; on Android 13
   and later the choice is the system's per-app language, also under the app's

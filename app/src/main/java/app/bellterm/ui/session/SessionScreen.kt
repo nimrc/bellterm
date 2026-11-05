@@ -79,10 +79,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -228,33 +226,14 @@ fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, 
         },
     ) {
         Column(Modifier.fillMaxSize().background(chromeColor).imePadding()) {
-            // The header draws its own glow and lends it to the glass controls on it.
+            // A flat wash of the node's colour behind the header, lent to the glass controls on it.
+            val headerColor = accent.copy(alpha = if (dark) 0.14f else 0.1f).compositeOver(chromeColor)
             Box {
                 Box(
                     Modifier
                         .matchParentSize()
                         .captureBackdrop(chrome)
-                        .drawBehind {
-                            drawRect(chromeColor)
-                            drawCircle(
-                                Brush.radialGradient(
-                                    listOf(accent.copy(alpha = if (dark) 0.34f else 0.26f), Color.Transparent),
-                                    center = Offset(size.width * 0.12f, 0f),
-                                    radius = size.width * 0.7f,
-                                ),
-                                radius = size.width * 0.7f,
-                                center = Offset(size.width * 0.12f, 0f),
-                            )
-                            drawCircle(
-                                Brush.radialGradient(
-                                    listOf(accent.copy(alpha = if (dark) 0.16f else 0.12f), Color.Transparent),
-                                    center = Offset(size.width, size.height),
-                                    radius = size.width * 0.5f,
-                                ),
-                                radius = size.width * 0.5f,
-                                center = Offset(size.width, size.height),
-                            )
-                        },
+                        .background(headerColor),
                 )
                 CompositionLocalProvider(LocalGlassBackdrop provides chrome) {
                     Column(Modifier.statusBarsPadding()) {
@@ -332,7 +311,7 @@ fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, 
                 Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(Brush.horizontalGradient(listOf(accent.copy(alpha = 0.8f), accent.copy(alpha = 0.15f), Color.Transparent))),
+                    .background(accent.copy(alpha = 0.6f)),
             )
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 // A reconnect is a new Connection: rebuild the view so its

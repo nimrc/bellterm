@@ -245,6 +245,15 @@ To do it locally instead, build with the release key and run
 `scripts/release-manifest.sh app/build/outputs/apk/release/app-release.apk dist`.
 The script refuses an APK signed with the debug key.
 
+### Website
+
+`site/` is bellterm.app, served as static assets by the Worker in
+`wrangler.jsonc`. The Site workflow checks it on pull requests and deploys it
+on every push to `main` that touches `site/` or `wrangler.jsonc`, with the
+secrets `CLOUDFLARE_WORKERS_TOKEN` (a token that can edit Workers and their
+custom domains) and `CLOUDFLARE_ACCOUNT_ID`. Run it from the Actions tab to
+redeploy `main`. Do not deploy from a local checkout.
+
 ### Live test
 
 `native/tests/live_ssh.rs` connects over real SSH to a real daemon: it checks

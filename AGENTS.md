@@ -16,6 +16,7 @@ them running. The app never installs, starts, stops, or upgrades Herdr.
 | `crates/herdr-protocol` | Herdr wire types, framing, validation, atomic surface patches |
 | `crates/herdr-client` | Discovery, socket worker, session transitions, ordered commands |
 | `crates/test-support/sandbox.rs` | Isolated process setup for herdr-client's opt-in live tests |
+| `site/` | bellterm.app, a static site served by the Worker in `wrangler.jsonc` |
 
 - Keep dependency direction from `native` to `herdr-client` to `herdr-protocol`.
 - Bellterm is Apache-2.0, and `crates/` is third-party Apache-2.0 code (see
@@ -39,6 +40,13 @@ them running. The app never installs, starts, stops, or upgrades Herdr.
 - The UI thread never blocks: socket, disk, and SSH work live in the Rust core
   or on background threads.
 - Keep `local.properties`, keystores, and signing passwords out of git.
+
+## Site
+
+- bellterm.app is deployed only by `.github/workflows/site.yml` on a push to
+  `main`. Never run `wrangler deploy` from a local checkout: what is live must
+  be a commit, or the next deploy from `main` silently reverts it.
+- Merge a site change as soon as it is ready instead of leaving it local.
 
 ## Verification
 

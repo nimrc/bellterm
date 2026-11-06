@@ -65,15 +65,13 @@
 <main>
   <div class="wrap hero">
     <div class="hero-copy">
-      <p class="eyebrow">BELLTERM FOR iOS &amp; ANDROID</p>
-      <h1>你的 agent。<br>你的手机。<br><span>时刻同步。</span></h1>
+      <p class="eyebrow">BELLTERM FOR iOS</p>
+      <h1>你的 agent。<br>你的 iPhone。<br><span>时刻同步。</span></h1>
       <p class="lede">把 Herdr 工作区带在身边。通过 SSH 查看 agent 的进度，需要你时，随时接手。放下手机，工作依然继续。</p>
       <div class="actions">
-        <div class="stores">
-          <a class="button" href="https://testflight.apple.com/join/aYFsFsRf"><img src="/apple.svg" alt="" width="26" height="30"><span><small>iPhone · TestFlight 测试版</small><strong>通过 TestFlight 下载</strong></span><span class="button-arrow" aria-hidden="true">↗</span></a>
-          <a class="button" href="https://dl.bellterm.app/bellterm.apk"><img src="/android.svg" alt="" width="28" height="28"><span><small>Android 10 或更新版本</small><strong>下载 APK</strong></span><span class="button-arrow" aria-hidden="true">↓</span></a>
-        </div>
-        <p class="fine">双平台原生应用，开源。</p>
+        <a class="button ios" href="https://testflight.apple.com/join/aYFsFsRf"><img src="/apple.svg" alt="" width="26" height="30"><span><small>加入 iOS 公开测试</small><strong>通过 TestFlight 下载</strong></span><span class="button-arrow" aria-hidden="true">↗</span></a>
+        <p class="fine">现已在 TestFlight 开放测试。</p>
+        <a class="android-link" href="https://dl.bellterm.app/bellterm.apk">也有 Android 版 <span aria-hidden="true">↗</span></a>
       </div>
     </div>
 
@@ -125,11 +123,11 @@
   <div class="wrap points">
     <div class="point">
       <h2>iOS 和 Android</h2>
-      <p>两个平台都是原生应用，共用同一个 Rust 核心。</p>
+      <p>在 iPhone 上通过 TestFlight 开始，也可下载 Android APK。</p>
     </div>
     <div class="point">
       <h2>极简设计</h2>
-      <p>液态玻璃，零干扰，专注功能。</p>
+      <p>干净UI，零干扰，专注功能</p>
     </div>
     <div class="point">
       <h2>小屏幕友好</h2>
@@ -148,7 +146,7 @@
       <div class="flow">
         <div class="end">
           <h3>Bellterm</h3>
-          <p>用 libghostty-vt 绘制 Herdr 的窗格，发送你的按键和触摸，并把守护进程的 agent 提醒带到你面前，在 Android 上以系统通知送达。</p>
+          <p>用 libghostty-vt 绘制 Herdr 的窗格，发送你的按键和触摸，并把守护进程的 agent 提醒转成 Android 通知。</p>
         </div>
         <div class="wire">
           <svg viewBox="0 0 160 24" preserveAspectRatio="none" aria-hidden="true">
@@ -177,7 +175,6 @@
             <li>App 在后台时，agent 需要你或任务完成会弹出<strong>通知</strong>。</li>
             <li><strong>点一下 agent</strong>，直接跳到它的窗格。</li>
             <li><strong>工作区</strong>显示分支、领先和落后的提交数，以及 worktree。</li>
-            <li><strong>长按</strong>标签页或工作区即可重命名或关闭。</li>
           </ul>
         </div>
         <div>
@@ -195,7 +192,7 @@
             <li><strong>跳板机</strong>可以像 <code>ssh -J</code> 一样串联，每一跳的主机密钥都会核对。</li>
             <li><strong>密钥与证书</strong>：在手机上生成 Ed25519 密钥，或导入 RSA、ECDSA、Ed25519 密钥。</li>
             <li><strong>导入 ~/.ssh/config</strong>：每个 Host 成为一个节点，ProxyJump 也会导入。</li>
-            <li><strong>密钥和密码</strong>在 iOS 上存入钥匙串，在 Android 上用 Android Keystore 中的密钥加密保存。</li>
+            <li><strong>密钥和密码</strong>用 Android Keystore 中的密钥加密保存。</li>
           </ul>
         </div>
       </div>

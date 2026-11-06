@@ -174,6 +174,18 @@ fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, 
         if (needed.isEmpty()) app.reconnect(node, emptyMap(), dark) else askPasswords = needed
     }
 
+    // Set while the passwords dialog collects sign-ins for installing or updating Herdr.
+    var setupAfterPasswords by remember { mutableStateOf(false) }
+    fun setupHerdr() {
+        val needed = app.passwordsToAsk(app.nodes.get(node.id) ?: node)
+        if (needed.isEmpty()) {
+            app.setupHerdr(node, emptyMap(), dark)
+        } else {
+            setupAfterPasswords = true
+            askPasswords = needed
+        }
+    }
+
     LaunchedEffect(scheme, state) { connection.setTheme(scheme.toJson().toString()) }
     LaunchedEffect(typefaces, terminal) { typefaces?.let { terminal?.setTypefaces(it) } }
     LaunchedEffect(settings.fontSize, terminal) { terminal?.fontSizeSp = settings.fontSize }
@@ -363,6 +375,7 @@ fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, 
                         app.nodes.trust(trusted.host, trusted.fingerprint)
                         retry()
                     },
+                    onSetup = ::setupHerdr,
                     onLeave = { app.disconnect(node.id); onLeave() },
                 )
                 GlassSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
@@ -388,12 +401,19 @@ fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, 
             hops = hops,
             onConnect = { secrets, remember ->
                 askPasswords = null
-                app.reconnect(node, secrets, dark, remember)
+                if (setupAfterPasswords) app.setupHerdr(node, secrets, dark, remember) else app.reconnect(node, secrets, dark, remember)
+                setupAfterPasswords = false
             },
-            onDismiss = { askPasswords = null },
+            onDismiss = {
+                askPasswords = null
+                setupAfterPasswords = false
+            },
         )
     }
 }
+
+/** How much of a failed install or update the state card shows. */
+private const val SETUP_OUTPUT_LINES = 40
 
 /** REJECT, the closest haptic to a bell, exists from API 30; older devices get a long press. */
 private val BellHaptic =
@@ -510,10 +530,10 @@ private fun SessionMenu(
 private fun ConnectionDot(state: Connection.State) {
     val color = when (state) {
         is Connection.State.Connected -> AgentStatus.Done.color()
-        is Connection.State.Connecting -> AgentStatus.Working.color()
+        is Connection.State.Connecting, is Connection.State.SettingUp -> AgentStatus.Working.color()
         else -> MaterialTheme.colorScheme.error
     }
-    val pulse = if (state is Connection.State.Connecting) {
+    val pulse = if (state is Connection.State.Connecting || state is Connection.State.SettingUp) {
         rememberInfiniteTransition(label = "pulse").animateFloat(
             initialValue = 0.35f,
             targetValue = 1f,
@@ -625,6 +645,7 @@ private fun StateCard(
     onRetry: () -> Unit,
     onSignIn: () -> Unit,
     onTrust: (Connection.State.UntrustedHostKey) -> Unit,
+    onSetup: () -> Unit,
     onLeave: () -> Unit,
 ) {
     val (title, body) = when (state) {
@@ -644,6 +665,12 @@ private fun StateCard(
             }
         }
         is Connection.State.Failed -> stringResource(R.string.could_not_connect) to state.reason
+        is Connection.State.HerdrMissing -> stringResource(R.string.herdr_missing_title) to stringResource(R.string.herdr_missing_text)
+        is Connection.State.SettingUp -> stringResource(R.string.herdr_setup_running_title) to stringResource(R.string.herdr_setup_running_text)
+        is Connection.State.SetupFailed -> stringResource(R.string.herdr_setup_failed_title) to stringResource(
+            R.string.herdr_setup_failed_text,
+            state.exitStatus?.toString() ?: stringResource(R.string.unknown_exit_status),
+        )
         is Connection.State.UntrustedHostKey -> stringResource(
             if (state.changed) R.string.host_key_changed else R.string.host_key_unknown,
         ) to stringResource(
@@ -656,7 +683,9 @@ private fun StateCard(
     val (icon, tone) = when (state) {
         is Connection.State.UntrustedHostKey -> Icons.Default.Lock to if (warning) MaterialTheme.colorScheme.error else accent
         is Connection.State.AuthRejected -> Icons.Default.Lock to MaterialTheme.colorScheme.error
-        is Connection.State.Incompatible -> Icons.Default.Warning to AgentStatus.Blocked.color()
+        is Connection.State.Incompatible, is Connection.State.HerdrMissing, is Connection.State.SetupFailed ->
+            Icons.Default.Warning to AgentStatus.Blocked.color()
+        is Connection.State.SettingUp -> Icons.Default.Refresh to accent
         else -> Icons.Default.Refresh to MaterialTheme.colorScheme.error
     }
     Box(
@@ -682,6 +711,35 @@ private fun StateCard(
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
             Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (state is Connection.State.SettingUp) {
+                LinearProgressIndicator(Modifier.fillMaxWidth().testTag("session:setup_progress"), color = accent)
+                GlassButton(stringResource(R.string.nodes), onClick = onLeave, modifier = Modifier.fillMaxWidth())
+                return@Column
+            }
+            if (state is Connection.State.SetupFailed && state.output.isNotBlank()) {
+                Text(
+                    state.output.lines().takeLast(SETUP_OUTPUT_LINES).joinToString("\n"),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.testTag("session:setup_output"),
+                )
+            }
+            // Installing or updating Herdr is offered only where it is the fix, and runs only on this tap.
+            val setupLabel = when {
+                state is Connection.State.Incompatible && state.daemonOutdated -> R.string.update_herdr
+                state is Connection.State.HerdrMissing -> R.string.install_herdr
+                state is Connection.State.SetupFailed -> R.string.try_again
+                else -> null
+            }
+            setupLabel?.let {
+                GlassButton(
+                    stringResource(it),
+                    onClick = onSetup,
+                    primary = true,
+                    accent = accent,
+                    modifier = Modifier.fillMaxWidth().testTag("session:setup_herdr"),
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 4.dp)) {
                 GlassButton(stringResource(R.string.nodes), onClick = onLeave, modifier = Modifier.weight(1f))
                 val (label, action) = when (state) {
@@ -696,7 +754,7 @@ private fun StateCard(
                 GlassButton(
                     label,
                     onClick = action,
-                    primary = true,
+                    primary = setupLabel == null,
                     accent = if (warning) MaterialTheme.colorScheme.error else accent,
                     modifier = Modifier.weight(1.4f).testTag("session:primary_action"),
                 )

@@ -10,6 +10,8 @@ pub enum Error {
     Cancelled,
     #[error(transparent)]
     Client(#[from] herdr_client::Error),
+    #[error("the command on the host did not finish in time")]
+    CommandTimeout,
     #[error("{0} is not an ARGB colour")]
     Colour(String),
     #[error("the route has no hosts")]

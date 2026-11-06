@@ -6,6 +6,7 @@
 mod clipboard;
 pub mod config;
 mod error;
+pub mod herdr_setup;
 pub mod input;
 mod jni_api;
 pub mod keys;

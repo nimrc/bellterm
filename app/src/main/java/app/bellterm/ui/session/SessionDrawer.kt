@@ -111,6 +111,7 @@ fun SessionDrawer(
                                 dot = true,
                             )
                             is Connection.State.Connecting -> Pill(stringResource(R.string.connecting), AgentStatus.Working.color(), dot = true)
+                            is Connection.State.SettingUp -> Pill(stringResource(R.string.herdr_setup_pill), AgentStatus.Working.color(), dot = true)
                             else -> Pill(stringResource(R.string.disconnected), MaterialTheme.colorScheme.error, dot = true)
                         }
                     }

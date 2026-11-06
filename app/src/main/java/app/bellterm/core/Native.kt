@@ -25,6 +25,13 @@ object Native {
      */
     external fun connect(configJson: String): Long
 
+    /**
+     * Installs or updates Herdr on the route document's last host and returns
+     * `{"exit_status": …, "output": …}`. Blocks for up to ten minutes; throws
+     * when the host cannot be reached.
+     */
+    external fun setupHerdr(configJson: String): String
+
     /** `{"private": …, "info": {algorithm, fingerprint, comment, public}}`; throws when unreadable. */
     external fun importKey(text: String, passphrase: String?): String
 

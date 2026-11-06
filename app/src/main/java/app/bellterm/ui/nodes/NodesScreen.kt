@@ -371,6 +371,7 @@ private fun NodeCard(
                                 dot = true,
                             )
                             is Connection.State.Connecting -> Pill(stringResource(R.string.connecting), MaterialTheme.colorScheme.secondary, dot = true)
+                            is Connection.State.SettingUp -> Pill(stringResource(R.string.herdr_setup_pill), MaterialTheme.colorScheme.secondary, dot = true)
                             null -> {}
                             else -> Pill(stringResource(R.string.disconnected), MaterialTheme.colorScheme.error, dot = true)
                         }

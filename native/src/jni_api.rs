@@ -12,7 +12,7 @@
 #![allow(unsafe_code)]
 
 use crate::{
-    Error, Result, config,
+    Error, Result, config, herdr_setup,
     input::Touch,
     keys,
     session::{self, Session},
@@ -185,6 +185,23 @@ pub extern "system" fn Java_app_bellterm_core_Native_connect<'local>(
             .unwrap_or_else(PoisonError::into_inner)
             .insert(id, Arc::new(session));
         Ok(id)
+    })
+    .resolve::<ThrowIo>()
+}
+
+/// Install or update Herdr on the last host of the route document; returns
+/// `{"exit_status": …, "output": …}`. Blocks for minutes: never call it on
+/// the main thread.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_app_bellterm_core_Native_setupHerdr<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
+    config_json: JString<'local>,
+) -> JString<'local> {
+    env.with_env(|env| -> Result<_> {
+        let json = Zeroizing::new(string(env, &config_json)?);
+        let outcome = herdr_setup::run(config::parse(&json)?.route)?;
+        Ok(env.new_string(outcome.to_json())?)
     })
     .resolve::<ThrowIo>()
 }

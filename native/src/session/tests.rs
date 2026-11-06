@@ -77,3 +77,12 @@ fn an_untrusted_host_key_is_a_refusal_and_a_timeout_is_not() {
     );
     assert!(connector_refusal(&Error::Timeout).is_none());
 }
+
+#[test]
+fn a_bridge_closed_before_any_herdr_answered_offers_an_install() {
+    let error = Error::Client(herdr_client::Error::SshClosed);
+    let event = connector_refusal(&error).unwrap();
+    assert_eq!(event, UiEvent::HerdrMissing);
+    assert_eq!(json(event)["type"], "herdr_missing");
+    assert_eq!(connector_refusal(&Error::SshClosed), None);
+}

@@ -5,6 +5,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import app.bellterm.core.Connection
+import app.bellterm.core.HerdrSetup
+import app.bellterm.core.Native
 import app.bellterm.core.Routes
 import app.bellterm.data.AppLanguages
 import app.bellterm.data.Keychain
@@ -24,6 +26,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
 
 /**
  * Process-wide state. Connections outlive activities, as Herdr sessions
@@ -87,27 +91,51 @@ class BelltermApp : Application() {
         _connections.value = _connections.value + (node.id to connection)
         nodes.touch(node)
         scope.launch(Dispatchers.IO) {
-            val route = nodes.route(node).getOrElse {
-                connection.fail(routeMessage((it as? RouteException)?.problem))
-                return@launch
-            }
-            keychain.device(getString(R.string.device_key_name))
-            // A password typed but not remembered also clears any saved one,
-            // which is how a rejected saved password is replaced or dropped.
-            if (remember) passwords.forEach(keychain::savePassword) else passwords.keys.forEach(keychain::forgetPassword)
-            val settings = settings.settings.value
-            val scheme = TerminalSchemes.byId(if (dark) settings.darkScheme else settings.lightScheme, dark)
-                .withCursor(NodeColors.of(node.color))
-            val document = runCatching {
-                Routes.document(route, nodes, keychain, passwords, this@BelltermApp.settings.lastGrid, scheme)
-            }.getOrElse {
-                connection.fail(getString(R.string.key_unreadable))
-                return@launch
-            }
-            connection.start(document)
+            routeDocument(node, passwords, dark, remember).fold(connection::start) { connection.fail(it.message.orEmpty()) }
         }
         ConnectionService.update(this)
         return connection
+    }
+
+    /** The route document for [node], or a failure whose message says why not. Call off the main thread. */
+    private fun routeDocument(node: Node, passwords: Map<String, String>, dark: Boolean, remember: Boolean): Result<String> {
+        val route = nodes.route(node).getOrElse {
+            return Result.failure(IllegalStateException(routeMessage((it as? RouteException)?.problem)))
+        }
+        keychain.device(getString(R.string.device_key_name))
+        // A password typed but not remembered also clears any saved one,
+        // which is how a rejected saved password is replaced or dropped.
+        if (remember) passwords.forEach(keychain::savePassword) else passwords.keys.forEach(keychain::forgetPassword)
+        val settings = settings.settings.value
+        val scheme = TerminalSchemes.byId(if (dark) settings.darkScheme else settings.lightScheme, dark)
+            .withCursor(NodeColors.of(node.color))
+        return runCatching { Routes.document(route, nodes, keychain, passwords, this.settings.lastGrid, scheme) }
+            .recoverCatching { throw IllegalStateException(getString(R.string.key_unreadable)) }
+    }
+
+    /**
+     * Install or update Herdr on [node]'s host, only because the user asked,
+     * then reconnect. The node's connection shows the progress and any failure.
+     */
+    fun setupHerdr(node: Node, passwords: Map<String, String>, dark: Boolean, remember: Boolean = false) {
+        val connection = _connections.value[node.id] ?: return
+        val current = nodes.get(node.id) ?: node
+        connection.settingUp()
+        scope.launch(Dispatchers.IO) {
+            val document = routeDocument(current, passwords, dark, remember).getOrElse {
+                return@launch connection.setupFailed(HerdrSetup(null, it.message.orEmpty()))
+            }
+            val setup = try {
+                HerdrSetup.parse(Native.setupHerdr(document))
+            } catch (e: IOException) {
+                HerdrSetup(null, e.message.orEmpty())
+            }
+            if (!setup.succeeded) return@launch connection.setupFailed(setup)
+            withContext(Dispatchers.Main) {
+                // Leaving the screen meanwhile disconnects; then there is nothing to resume.
+                if (_connections.value[node.id] === connection) reconnect(current, passwords, dark, remember)
+            }
+        }
     }
 
     /** Nodes on [node]'s route that sign in with a password and have none saved. */

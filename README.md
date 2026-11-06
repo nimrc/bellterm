@@ -110,10 +110,15 @@ each hop shows the host key's SHA-256 fingerprint for you to compare with
 it.
 
 The host that runs Herdr needs `/bin/sh` and Herdr 0.9.0 or later in one of the
-the usual install locations (for example `~/.local/bin/herdr`).
-Nothing is installed, started, or upgraded on the host: if no Herdr server is
-running for the session, start one there with `herdr`. Jump hosts need only
-SSH with TCP forwarding allowed.
+usual install locations (for example `~/.local/bin/herdr`). When a connection
+finds Herdr missing or older than that, the session offers **Install Herdr** or
+**Update Herdr**: on your tap, Bellterm runs `herdr update --handoff` with the
+Herdr it found, which hands running sessions to the new version, or downloads
+Herdr's installer from `https://herdr.dev/install.sh` and runs it, which puts
+`herdr` in `~/.local/bin`. The installer needs `curl` or `wget` on the host.
+Nothing else is installed, and nothing is started or stopped: if no Herdr
+server is running for the session, start one there with `herdr`. Jump hosts
+need only SSH with TCP forwarding allowed.
 
 ## How it works
 

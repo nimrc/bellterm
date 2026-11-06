@@ -71,6 +71,7 @@ pub use sessions::{
     list_local_sessions, list_remote_sessions,
 };
 #[cfg(unix)]
+pub use ssh::CANDIDATES as HERDR_CANDIDATES;
 pub use ssh::script_command;
 pub use ssh::{Bridge, connect_command};
 pub use ssh::{

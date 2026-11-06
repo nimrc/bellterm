@@ -5,7 +5,8 @@
 //! and runs Herdr's remote bridge on the last. The bridge channel is pumped
 //! through a Unix socket pair so herdr-client's blocking worker reads it like
 //! the bridge it spawns on the desktop. The async runtime is confined to this
-//! one thread and owns only the SSH sessions.
+//! one thread and owns only the SSH sessions. [`run`] walks the same route to
+//! run one command and collect what it prints.
 
 mod auth;
 
@@ -13,7 +14,7 @@ use crate::{Error, Result};
 pub use auth::Credential;
 use herdr_client::{Stream, answer_remote_bridge, remote_bridge_command};
 use russh::{
-    Disconnect,
+    ChannelMsg, Disconnect,
     client::{self, Handle},
     keys::{HashAlg, PublicKey, PublicKeyOrCertificate},
 };
@@ -81,7 +82,7 @@ pub fn open(route: Route, stop: &AtomicBool) -> Result<Stream> {
                     return;
                 }
             };
-            runtime.block_on(run(route, command, theirs, ready));
+            runtime.block_on(run_bridge(route, command, theirs, ready));
         })?;
     let started = Instant::now();
     loop {
@@ -101,7 +102,59 @@ pub fn open(route: Route, stop: &AtomicBool) -> Result<Stream> {
     Ok(ours)
 }
 
-async fn run(
+/// What a command run with [`run`] left behind.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Output {
+    /// `None` when the host closed the channel without reporting one.
+    pub exit_status: Option<u32>,
+    /// The last bytes of stdout and stderr, interleaved as they arrived.
+    pub tail: Vec<u8>,
+}
+
+/// Run `command` on the route's last host and collect its output, keeping
+/// the last `limit` bytes. Blocks for at most `timeout` once every hop is up:
+/// call it from a background thread.
+pub fn run(route: Route, command: &str, timeout: Duration, limit: usize) -> Result<Output> {
+    if route.hops.is_empty() {
+        return Err(Error::EmptyRoute);
+    }
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()?;
+    runtime.block_on(async {
+        let (handles, channel) =
+            tokio::time::timeout(SETUP_TIMEOUT, start(route, command.to_owned()))
+                .await
+                .map_err(|_| Error::Timeout)??;
+        let collected = tokio::time::timeout(timeout, collect(channel, limit)).await;
+        for handle in handles.iter().rev() {
+            let _ = handle.disconnect(Disconnect::ByApplication, "", "en").await;
+        }
+        collected.map_err(|_| Error::CommandTimeout)
+    })
+}
+
+async fn collect(mut channel: russh::Channel<client::Msg>, limit: usize) -> Output {
+    let mut tail = Vec::new();
+    let mut exit_status = None;
+    while let Some(message) = channel.wait().await {
+        match message {
+            ChannelMsg::Data { data } | ChannelMsg::ExtendedData { data, .. } => {
+                tail.extend_from_slice(&data);
+                if tail.len() > limit {
+                    tail.drain(..tail.len() - limit);
+                }
+            }
+            ChannelMsg::ExitStatus {
+                exit_status: status,
+            } => exit_status = Some(status),
+            _ => {}
+        }
+    }
+    Output { exit_status, tail }
+}
+
+async fn run_bridge(
     route: Route,
     command: String,
     theirs: UnixStream,

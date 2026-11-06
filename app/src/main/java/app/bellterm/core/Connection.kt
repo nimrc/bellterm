@@ -24,6 +24,12 @@ class Connection(val node: Node) {
         data class AuthRejected(val hop: Int, val host: String) : State
         /** The route could not be built, such as a password left unanswered. */
         data class Failed(val reason: String) : State
+        /** The host closed the bridge before any Herdr answered: none is installed, or none works. */
+        data object HerdrMissing : State
+        /** Herdr is being installed or updated on the host, at the user's request. */
+        data object SettingUp : State
+        /** Installing or updating Herdr failed; [output] is the end of what the host printed. */
+        data class SetupFailed(val exitStatus: Int?, val output: String) : State
         /**
          * Herdr on the host and this app cannot work together; updating one
          * fixes it, not retrying. [daemonOutdated] says which: the host's
@@ -87,6 +93,14 @@ class Connection(val node: Node) {
         _state.value = State.Failed(reason)
     }
 
+    fun settingUp() {
+        _state.value = State.SettingUp
+    }
+
+    fun setupFailed(outcome: HerdrSetup) {
+        _state.value = State.SetupFailed(outcome.exitStatus, outcome.output)
+    }
+
     private fun pump(session: Long) {
         while (!closed && id == session) {
             val json = Native.nextEvent(session, 500) ?: continue
@@ -112,6 +126,11 @@ class Connection(val node: Node) {
                 "bell" -> _events.tryEmit(Event.Bell)
                 "rejected" -> _events.tryEmit(Event.Problem(event.optString("reason")))
                 "version_mismatch" -> _state.value = State.Incompatible.parse(event)
+                "herdr_missing" -> {
+                    _state.value = State.HerdrMissing
+                    finish(session)
+                    return
+                }
                 "auth_rejected" -> {
                     _state.value = State.AuthRejected(event.optInt("hop"), event.optString("host"))
                     finish(session)

@@ -5,11 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -24,6 +21,8 @@ import app.bellterm.R
 import app.bellterm.data.UpdateChecker
 import app.bellterm.data.UpdateInfo
 import app.bellterm.data.UpdateState
+import app.bellterm.ui.glass.GlassButton
+import app.bellterm.ui.glass.GlassGroup
 
 /** Opens the release's APK in the browser; no browser installed is the only failure, with nothing better to offer. */
 @Composable
@@ -40,26 +39,22 @@ fun UpdateBanner(updates: UpdateChecker, modifier: Modifier = Modifier) {
     val info = (state as? UpdateState.Available)?.info?.takeIf { it.versionCode != skipped } ?: return
     val language = LocalContext.current.resources.configuration.locales[0].language
     val download = rememberOpenDownload()
-    Surface(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-    ) {
-        Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 4.dp)) {
+    GlassGroup(modifier.padding(vertical = 8.dp)) {
+        Column(Modifier.padding(start = 20.dp, end = 16.dp, top = 18.dp, bottom = 16.dp)) {
             Text(stringResource(R.string.update_available_title, info.versionName), style = MaterialTheme.typography.titleMedium)
             info.notesFor(language).takeIf { it.isNotEmpty() }?.let { notes ->
                 Text(
                     notes,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 4.dp, end = 8.dp),
                 )
             }
-            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                TextButton(onClick = { updates.skip(info) }) { Text(stringResource(R.string.update_skip)) }
-                Button(onClick = { download(info) }) { Text(stringResource(R.string.download)) }
+            Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End)) {
+                GlassButton(stringResource(R.string.update_skip), onClick = { updates.skip(info) })
+                GlassButton(stringResource(R.string.download), onClick = { download(info) }, primary = true)
             }
         }
     }

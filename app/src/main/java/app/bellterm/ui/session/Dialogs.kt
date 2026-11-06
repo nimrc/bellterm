@@ -1,30 +1,27 @@
 package app.bellterm.ui.session
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import app.bellterm.R
 import app.bellterm.core.Connection
 import app.bellterm.ui.components.ConfirmDialog
+import app.bellterm.ui.glass.GlassAlertDialog
+import app.bellterm.ui.glass.GlassField
 
 /** Renames ask for a label; closing anything Herdr runs asks first. */
 @Composable
@@ -67,11 +64,11 @@ private fun NewTabDialog(onDone: () -> Unit, onCreate: (String) -> Unit) {
     var label by remember { mutableStateOf("") }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDone,
         title = { Text(stringResource(R.string.new_tab)) },
         text = {
-            OutlinedTextField(
+            GlassField(
                 label, { label = it },
                 label = { Text(stringResource(R.string.tab_name)) },
                 placeholder = { Text(stringResource(R.string.tab_name_hint)) },
@@ -93,11 +90,11 @@ private fun RenameDialog(title: String, initial: String, onDone: () -> Unit, onR
     var label by remember { mutableStateOf(initial) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDone,
         title = { Text(title) },
         text = {
-            OutlinedTextField(label, { label = it }, singleLine = true, modifier = Modifier.fillMaxWidth().focusRequester(focus))
+            GlassField(label, { label = it }, singleLine = true, modifier = Modifier.fillMaxWidth().focusRequester(focus).testTag("prompt_field"))
         },
         confirmButton = {
             TextButton(enabled = label.isNotBlank(), onClick = { onRename(label.trim()); onDone() }) {

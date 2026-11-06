@@ -5,28 +5,18 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +38,11 @@ import app.bellterm.ui.components.Group
 import app.bellterm.ui.components.NodeAvatar
 import app.bellterm.ui.components.Pill
 import app.bellterm.ui.components.SectionHeader
+import app.bellterm.ui.glass.GlassButton
+import app.bellterm.ui.glass.GlassField
+import app.bellterm.ui.glass.GlassScreen
+import app.bellterm.ui.glass.GroupShape
+import app.bellterm.ui.glass.glass
 import org.json.JSONObject
 
 /** One `Host` alias from an OpenSSH configuration, as `ssh_config.rs` reads it. */
@@ -165,33 +160,27 @@ fun ImportConfigScreen(app: BelltermApp, onDone: () -> Unit) {
     }
     BackHandler(onBack = onDone)
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.import_ssh_config)) },
-                navigationIcon = {
-                    IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) }
-                },
-            )
-        },
-    ) { padding ->
-        LazyColumn(Modifier.padding(padding), contentPadding = PaddingValues(bottom = 24.dp)) {
+    GlassScreen(title = stringResource(R.string.import_ssh_config), onBack = onDone) { padding ->
+        LazyColumn(Modifier.imePadding(), contentPadding = padding) {
             item {
-                Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(stringResource(R.string.import_help), style = MaterialTheme.typography.bodyMedium)
-                    OutlinedTextField(
+                Column(
+                    Modifier.padding(horizontal = 16.dp).glass(GroupShape).padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(stringResource(R.string.import_help), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    GlassField(
                         text, { text = it },
                         placeholder = { Text("Host devbox\n    HostName 10.0.0.5\n    User me\n    ProxyJump bastion") },
                         textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                         modifier = Modifier.fillMaxWidth().heightIn(min = 140.dp, max = 260.dp),
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }) { Text(stringResource(R.string.choose_file)) }
+                        GlassButton(stringResource(R.string.choose_file), onClick = { picker.launch(arrayOf("*/*")) })
                     }
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     val entries = parsed?.first.orEmpty()
                     if (entries.any { it.user == null }) {
-                        OutlinedTextField(
+                        GlassField(
                             fallbackUser, { fallbackUser = it.trim() },
                             label = { Text(stringResource(R.string.import_default_user)) },
                             singleLine = true,
@@ -207,7 +196,7 @@ fun ImportConfigScreen(app: BelltermApp, onDone: () -> Unit) {
                     Group {
                         entries.forEach { entry ->
                             Row(
-                                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
@@ -252,8 +241,10 @@ fun ImportConfigScreen(app: BelltermApp, onDone: () -> Unit) {
                 item {
                     val selected = entries.filter { it.alias !in unchecked }
                     val needsUser = selected.any { it.user == null } && fallbackUser.isEmpty()
-                    Button(
+                    GlassButton(
+                        pluralStringResource(R.plurals.import_nodes, selected.size, selected.size),
                         enabled = selected.isNotEmpty() && !needsUser,
+                        primary = true,
                         onClick = {
                             app.nodes.upsertAll(
                                 ConfigImport.nodes(selected, entries, app.nodes.nodes.value, fallbackUser, context.getString(R.string.import_group)),
@@ -261,7 +252,7 @@ fun ImportConfigScreen(app: BelltermApp, onDone: () -> Unit) {
                             onDone()
                         },
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    ) { Text(pluralStringResource(R.plurals.import_nodes, selected.size, selected.size)) }
+                    )
                 }
             } else if (text.isNotBlank()) {
                 item {

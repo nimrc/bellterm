@@ -3,15 +3,16 @@ package app.bellterm.ui.keys
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -21,29 +22,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,7 +43,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -65,17 +57,24 @@ import app.bellterm.BelltermApp
 import app.bellterm.R
 import app.bellterm.data.AuthMethod
 import app.bellterm.data.CertificateInfo
-import app.bellterm.data.Keychain
 import app.bellterm.data.Identity
+import app.bellterm.data.Keychain
 import app.bellterm.ui.components.ConfirmDialog
+import app.bellterm.ui.components.Group
 import app.bellterm.ui.components.Pill
 import app.bellterm.ui.components.SectionHeader
 import app.bellterm.ui.components.TextDialog
+import app.bellterm.ui.glass.GlassAlertDialog
+import app.bellterm.ui.glass.GlassButton
+import app.bellterm.ui.glass.GlassField
+import app.bellterm.ui.glass.GlassMenu
+import app.bellterm.ui.glass.GlassScreen
+import app.bellterm.ui.glass.IconBadge
+import java.text.DateFormat
+import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.DateFormat
-import java.util.Date
 
 private sealed interface KeyDialog {
     data object Generate : KeyDialog
@@ -109,22 +108,20 @@ fun KeysScreen(app: BelltermApp, onBack: () -> Unit) {
     }
     BackHandler(onBack = onBack)
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.keys)) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
-            )
-        },
-        floatingActionButton = {
+    GlassScreen(
+        title = stringResource(R.string.keys),
+        onBack = onBack,
+        snackbar = snackbar,
+        bottomBar = {
             Box {
-                ExtendedFloatingActionButton(
+                GlassButton(
+                    stringResource(R.string.add_key),
                     onClick = { add = true },
-                    icon = { Icon(Icons.Default.Add, null) },
-                    text = { Text(stringResource(R.string.add_key)) },
+                    primary = true,
+                    icon = Icons.Default.Add,
+                    modifier = Modifier.testTag("add_key"),
                 )
-                DropdownMenu(expanded = add, onDismissRequest = { add = false }) {
+                GlassMenu(expanded = add, onDismissRequest = { add = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.generate_key)) }, onClick = { add = false; dialog = KeyDialog.Generate })
                     DropdownMenuItem(text = { Text(stringResource(R.string.paste_key)) }, onClick = { add = false; dialog = KeyDialog.Import() })
                     DropdownMenuItem(text = { Text(stringResource(R.string.key_from_file)) }, onClick = { add = false; picker.launch(arrayOf("*/*")) })
@@ -132,13 +129,13 @@ fun KeysScreen(app: BelltermApp, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        LazyColumn(contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding() + 104.dp)) {
+        LazyColumn(contentPadding = padding, modifier = Modifier.testTag("keys")) {
             item {
                 Text(
                     stringResource(R.string.keys_help),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 28.dp, vertical = 4.dp),
                 )
             }
             item { SectionHeader(stringResource(R.string.identities)) }
@@ -149,7 +146,10 @@ fun KeysScreen(app: BelltermApp, onBack: () -> Unit) {
                     users = nodes.count { (it.identityId ?: Keychain.DEVICE) == identity.id && it.auth == AuthMethod.Key },
                     onCopy = {
                         context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("ssh public key", identity.publicKey))
-                        scope.launch { snackbar.showSnackbar(context.getString(R.string.public_key_copied)) }
+                        // Android 13 and later confirm copies themselves; a second notice would cover theirs.
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                            scope.launch { snackbar.showSnackbar(context.getString(R.string.public_key_copied)) }
+                        }
                     },
                     onShare = {
                         context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, identity.publicKey), null))
@@ -216,14 +216,10 @@ private fun KeyCard(
     val certificate = remember(identity.certificate) {
         identity.certificate?.let { runCatching { app.keychain.certificateInfo(identity.id, it) }.getOrNull() }
     }
-    ElevatedCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Group(Modifier.padding(vertical = 6.dp)) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(40.dp)) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                    }
-                }
+                IconBadge(Icons.Default.Lock, if (identity.isDevice) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary, Modifier.size(42.dp))
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                     Text(identity.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
@@ -234,7 +230,7 @@ private fun KeyCard(
                 }
                 Box {
                     IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, stringResource(R.string.more)) }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    GlassMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.share)) }, onClick = { menu = false; onShare() })
                         DropdownMenuItem(
                             text = { Text(stringResource(if (identity.certificate == null) R.string.attach_certificate else R.string.manage_certificate)) },
@@ -262,18 +258,21 @@ private fun KeyCard(
                     )
                 }
             }
-            Text(identity.fingerprint, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
-            Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
-                Text(
-                    identity.publicKey,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = FontFamily.Monospace,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(10.dp),
-                )
-            }
-            OutlinedButton(onClick = onCopy) { Text(stringResource(R.string.copy_public_key)) }
+            Text(identity.fingerprint, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                identity.publicKey,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                    .padding(12.dp)
+                    .testTag("public_key"),
+            )
+            GlassButton(stringResource(R.string.copy_public_key), onClick = onCopy, modifier = Modifier.testTag("copy_public_key"))
         }
     }
 }
@@ -283,20 +282,20 @@ private fun ImportKeyDialog(initial: String, onDismiss: () -> Unit, onImport: (S
     var name by remember { mutableStateOf("") }
     var text by remember { mutableStateOf(initial) }
     var passphrase by remember { mutableStateOf("") }
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.import_key)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.key_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(
+                GlassField(name, { name = it }, label = { Text(stringResource(R.string.key_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                GlassField(
                     text, { text = it },
                     label = { Text(stringResource(R.string.private_key)) },
                     placeholder = { Text("-----BEGIN OPENSSH PRIVATE KEY-----") },
                     textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                     modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 200.dp),
                 )
-                OutlinedTextField(
+                GlassField(
                     passphrase, { passphrase = it },
                     label = { Text(stringResource(R.string.passphrase_optional)) },
                     singleLine = true,
@@ -329,12 +328,12 @@ private fun CertificateDialog(app: BelltermApp, identity: Identity, onDismiss: (
         -1L, Long.MAX_VALUE -> "∞"
         else -> if (seconds < 0) "∞" else format.format(Date(seconds * 1000))
     }
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.certificate_for, identity.name)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+                GlassField(
                     text, { text = it },
                     placeholder = { Text("ssh-ed25519-cert-v01@openssh.com AAAA…") },
                     textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),

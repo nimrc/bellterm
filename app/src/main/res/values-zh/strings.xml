@@ -46,6 +46,9 @@
     <string name="delete_node_title">删除 %1$s？</string>
     <string name="delete_node_text">只删除保存的节点。主机上的 Herdr 及其运行的程序不受影响；以它为跳板的节点将改为直连。</string>
     <string name="no_nodes_title">还没有节点</string>
+    <string name="no_nodes_text">添加一台运行 Herdr 的主机，或从 ~/.ssh/config 导入主机。</string>
+    <string name="no_matches">没有匹配的节点</string>
+    <string name="clear">清除</string>
     <string name="via_jump">经 %1$s</string>
     <string name="certificate">证书</string>
     <string name="import_ssh_config">导入 SSH 配置</string>
@@ -180,8 +183,6 @@
     <string name="language_system">跟随系统</string>
     <string name="theme_light">浅色</string>
     <string name="theme_dark">深色</string>
-    <string name="dynamic_color">壁纸取色</string>
-    <string name="dynamic_color_help">使用 Material You 动态配色，代替 Bellterm 的黄铜与石板配色。</string>
     <string name="dark_scheme">终端配色 · 深色</string>
     <string name="light_scheme">终端配色 · 浅色</string>
     <string name="section_font">终端字体</string>
@@ -211,5 +212,8 @@
     <string name="join_discord">加入 Discord</string>
     <plurals name="attached_hosts">
         <item quantity="other">已附着到 %d 个节点</item>
+    </plurals>
+    <plurals name="node_count">
+        <item quantity="other">%1$d 个节点</item>
     </plurals>
 </resources>

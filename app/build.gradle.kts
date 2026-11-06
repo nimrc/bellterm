@@ -19,6 +19,7 @@ android {
         targetSdk = 36
         versionCode = 10000
         versionName = "1.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
@@ -121,6 +122,13 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons)
     implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.coui.blur)
     testImplementation(libs.junit)
     testImplementation(libs.org.json)
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.uiautomator)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

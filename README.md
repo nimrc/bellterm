@@ -55,8 +55,14 @@ loader only supports from Android 10.
 
 ### Appearance
 
-- Bellterm's own brass-and-slate Material 3 theme in light and dark, or
-  Material You wallpaper colours; light/dark follows the system or is fixed.
+- Liquid glass in the style of ColorOS 16, built on
+  [coui-blur](https://github.com/suqi8/coui): frosted cards, capsule
+  toolbars, and a progressively blurred top bar over flat colours, with bloom
+  highlights on glass rims and refraction on primary buttons. Below
+  Android 13, which lacks the shaders, the same surfaces are drawn as dense
+  tints.
+- Bellterm's own brass-and-slate palette in light and dark; light/dark
+  follows the system or is fixed.
 - English and Simplified Chinese. **Settings > Language** follows the system by
   default (any Chinese system locale gets Chinese) or pins one; on Android 13
   and later the choice is the system's per-app language, also under the app's
@@ -173,6 +179,19 @@ cargo install cargo-ndk --locked
 #   zig.dir=/path/to/zig-0.15.2
 just build      # app/build/outputs/apk/debug/app-debug.apk (Bellterm)
 just test       # Rust core tests on the host, then Kotlin unit tests
+```
+
+End-to-end UI tests drive the debug build on a connected device through
+UiAutomator, screen by screen, and save screenshots under the app's external
+files (`Android/data/app.bellterm/files/e2e/`). They clean up what they
+create. To include a live connection, name a host whose `authorized_keys`
+trusts the device key (the host key's fingerprint is needed only if the device
+has not trusted it yet):
+
+```sh
+just e2e                                   # without a host
+just e2e 10.0.0.5 22 me                    # host, port, user
+just e2e 10.0.0.5 22 me SHA256:…           # and the expected host key
 ```
 
 Gradle runs cargo-ndk before every build. If Zig cannot fetch Ghostty's

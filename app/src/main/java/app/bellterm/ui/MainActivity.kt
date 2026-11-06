@@ -12,7 +12,15 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -20,6 +28,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import app.bellterm.BelltermApp
 import app.bellterm.data.AppLanguages
 import app.bellterm.data.Node
@@ -60,8 +71,11 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose {}
             }
-            BelltermTheme(dark = dark, dynamic = settings.dynamicColor) {
-                Root(app, dark)
+            BelltermTheme(dark = dark) {
+                // Test tags double as resource ids, so UiAutomator end-to-end tests can find them.
+                Box(Modifier.semantics { testTagsAsResourceId = true }) {
+                    Root(app, dark)
+                }
             }
         }
     }
@@ -127,31 +141,41 @@ class MainActivity : ComponentActivity() {
         }
         val home = { screen = "nodes" }
 
-        when {
-            screen == "keys" -> KeysScreen(app, onBack = home)
-            screen == "known" -> KnownHostsScreen(app, onBack = home)
-            screen == "settings" -> SettingsScreen(app, onBack = home)
-            screen == "import" -> ImportConfigScreen(app, onDone = home)
-            screen.startsWith("edit:") -> NodeEditor(app, app.nodes.get(screen.removePrefix("edit:").ifEmpty { null }), onDone = home)
-            screen.startsWith("session:") -> {
-                val nodeId = screen.removePrefix("session:")
-                val connection = connections[nodeId]
-                if (connection == null) {
-                    screen = "nodes"
-                } else {
-                    SessionScreen(
-                        app = app,
-                        connection = connection,
-                        focusPane = opened.value?.takeIf { it.first == nodeId }?.second,
-                        dark = dark,
-                        onLeave = {
-                            opened.value = null
-                            screen = "nodes"
-                        },
-                    )
+        // Screens cross-fade with a slight zoom, as COUI pages do.
+        AnimatedContent(
+            targetState = screen,
+            transitionSpec = {
+                (fadeIn(tween(220, delayMillis = 40)) + scaleIn(tween(260), initialScale = 0.97f)) togetherWith
+                    (fadeOut(tween(160)) + scaleOut(tween(200), targetScale = 1.02f))
+            },
+            label = "screen",
+        ) { target ->
+            when {
+                target == "keys" -> KeysScreen(app, onBack = home)
+                target == "known" -> KnownHostsScreen(app, onBack = home)
+                target == "settings" -> SettingsScreen(app, onBack = home)
+                target == "import" -> ImportConfigScreen(app, onDone = home)
+                target.startsWith("edit:") -> NodeEditor(app, app.nodes.get(target.removePrefix("edit:").ifEmpty { null }), onDone = home)
+                target.startsWith("session:") -> {
+                    val nodeId = target.removePrefix("session:")
+                    val connection = connections[nodeId]
+                    if (connection == null) {
+                        screen = "nodes"
+                    } else {
+                        SessionScreen(
+                            app = app,
+                            connection = connection,
+                            focusPane = opened.value?.takeIf { it.first == nodeId }?.second,
+                            dark = dark,
+                            onLeave = {
+                                opened.value = null
+                                screen = "nodes"
+                            },
+                        )
+                    }
                 }
+                else -> NodesScreen(app, navigation)
             }
-            else -> NodesScreen(app, navigation)
         }
 
         askPasswords?.let { nodeId ->

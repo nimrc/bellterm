@@ -1,0 +1,3 @@
+A new liquid glass look: frosted cards, floating toolbars, and a cleaner session header.
+Long-press a tab, or a workspace in the drawer, to rename or close it.
+Wallpaper colours are gone; Bellterm keeps its own palette.

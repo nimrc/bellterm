@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bellterm — Herdr on Android, over SSH</title>
-<meta name="description" content="A native Android client for Herdr: reach workspaces, tabs, panes, and agents over SSH, and get notified when an agent needs input. Open source.">
-<meta name="theme-color" content="#13202F">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bellterm — Herdr on your phone, over SSH</title>
+<meta name="description" content="A native iOS and Android client for Herdr: reach workspaces, tabs, panes, and agents over SSH, and get notified when an agent needs input. Open source.">
+<meta name="theme-color" content="#f5f5f7">
 <link rel="canonical" href="https://bellterm.app/">
 <link rel="alternate" hreflang="en" href="https://bellterm.app/">
 <link rel="alternate" hreflang="zh-CN" href="https://bellterm.app/zh/">
@@ -17,7 +17,7 @@
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="zh_CN">
 <meta property="og:title" content="Bellterm — Your Herdr agents, on your phone">
-<meta property="og:description" content="A native Android client for Herdr over SSH. Reach workspaces, tabs, and panes, and get notified when an agent needs you.">
+<meta property="og:description" content="A native iOS and Android client for Herdr over SSH. Reach workspaces, tabs, and panes, and get notified when an agent needs you.">
 <meta property="og:url" content="https://bellterm.app/">
 <meta property="og:image" content="https://bellterm.app/og.png">
 <meta property="og:image:width" content="1200">
@@ -30,11 +30,11 @@
   "@type": "SoftwareApplication",
   "name": "Bellterm",
   "url": "https://bellterm.app/",
-  "description": "A native Android client for Herdr: reach workspaces, tabs, panes, and agents over SSH, and get notified when an agent needs input. Open source.",
+  "description": "A native iOS and Android client for Herdr: reach workspaces, tabs, panes, and agents over SSH, and get notified when an agent needs input. Open source.",
   "inLanguage": "en",
   "applicationCategory": "DeveloperApplication",
-  "operatingSystem": "Android 10+",
-  "downloadUrl": "https://dl.bellterm.app/bellterm.apk",
+  "operatingSystem": ["iOS", "Android 10+"],
+  "downloadUrl": ["https://testflight.apple.com/join/aYFsFsRf", "https://dl.bellterm.app/bellterm.apk"],
   "image": "https://bellterm.app/og.png",
   "license": "https://www.apache.org/licenses/LICENSE-2.0",
   "isAccessibleForFree": true,
@@ -48,9 +48,6 @@
   ]
 }
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -67,20 +64,22 @@
 
 <main>
   <div class="wrap hero">
-    <div>
-      <h1>Your Herdr agents, on your phone.</h1>
-      <p class="lede">Bellterm is a native Android client for <a href="https://herdr.dev/">Herdr</a>. Reach its workspaces, tabs, and panes over SSH, answer an agent when it rings, and put the phone away. Everything keeps running on the host.</p>
+    <div class="hero-copy">
+      <p class="eyebrow">BELLTERM FOR iOS &amp; ANDROID</p>
+      <h1>Your agents.<br>Your phone.<br><span>In sync.</span></h1>
+      <p class="lede">Your Herdr workspace, wherever you are. Connect over SSH, check on your agents, and step in when they need you. Your work keeps running.</p>
       <div class="actions">
-        <a class="button" href="https://dl.bellterm.app/bellterm.apk">Download the APK</a>
-        <a class="button ghost" href="https://github.com/nimrc/bellterm">View on GitHub</a>
-        <span class="fine">Android 10 or newer, arm64 and x86_64</span>
+        <div class="stores">
+          <a class="button" href="https://testflight.apple.com/join/aYFsFsRf"><img src="/apple.svg" alt="" width="26" height="30"><span><small>iPhone · TestFlight beta</small><strong>Get it on TestFlight</strong></span><span class="button-arrow" aria-hidden="true">↗</span></a>
+          <a class="button" href="https://dl.bellterm.app/bellterm.apk"><img src="/android.svg" alt="" width="28" height="28"><span><small>Android 10 or newer</small><strong>Download the APK</strong></span><span class="button-arrow" aria-hidden="true">↓</span></a>
+        </div>
+        <p class="fine">Native on both platforms. Open source.</p>
       </div>
     </div>
 
-    <div class="phone" role="img" aria-label="Bellterm attached to a Herdr workspace, with a notification that an agent needs input">
+    <div class="phone" role="img" aria-label="iPhone Duo style Bellterm preview, with time, battery and Wi-Fi in a side rail beside the terminal and agent notification">
       <div class="screen" aria-hidden="true">
-        <div class="status"><span>9:41</span><span>5G ▮▮▮</span></div>
-        <div class="bar"><span>☰</span><b>api-server</b><span class="branch">main ↑2</span></div>
+        <div class="bar"><span class="back">‹</span><b>api-server</b><span class="branch">main ↑2</span><span class="workspace-menu">···</span></div>
         <div class="tabs">
           <span><i class="dot work"></i>shell</span>
           <span class="on"><i class="dot wait"></i>agent</span>
@@ -108,17 +107,29 @@ I've moved the rate limiter in front of the auth middleware. The tests need a da
           <span>Waiting in tab “agent”</span>
         </div>
       </div>
+      <div class="duo-status" aria-hidden="true">
+        <span class="duo-time">9:41</span>
+        <svg class="duo-battery" viewBox="0 0 100 112" fill="none">
+          <path d="M27.690 76.968A35 35 0 1 1 72.310 76.968" stroke="#46505e" stroke-width="6" stroke-linecap="round"/>
+          <path d="M27.690 76.968A35 35 0 0 1 46.575 15.168" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+          <path class="duo-wifi" d="M34.64 49.13a21.72 21.72 0 0 1 30.72 0M40.18 54.68a13.88 13.88 0 0 1 19.64 0" stroke="currentColor" stroke-width="5.4" stroke-linecap="round"/>
+          <path d="M44 57.2h12l-6 7.3z" fill="currentColor"/>
+          <g fill="currentColor"><circle cx="31.3" cy="80.2" r="4.2"/><circle cx="43.4" cy="84.4" r="4.2"/><circle cx="56.6" cy="84.4" r="4.2"/><circle cx="68.7" cy="80.2" r="4.2"/></g>
+          <path d="M36 10h28v20H36z" fill="var(--deep)"/>
+          <text x="50" y="26.5" text-anchor="middle" fill="currentColor">48</text>
+        </svg>
+      </div>
     </div>
   </div>
 
   <div class="wrap points">
     <div class="point">
-      <h2>Native Android</h2>
-      <p>Kotlin and Rust, built for speed.</p>
+      <h2>iOS and Android</h2>
+      <p>Native apps for both, built on one Rust core.</p>
     </div>
     <div class="point">
       <h2>Minimal by design</h2>
-      <p>A clean UI, zero distractions, all function.</p>
+      <p>Liquid glass, zero distractions, all function.</p>
     </div>
     <div class="point">
       <h2>Made for small screens</h2>
@@ -137,7 +148,7 @@ I've moved the rate limiter in front of the auth middleware. The tests need a da
       <div class="flow">
         <div class="end">
           <h3>Bellterm</h3>
-          <p>Draws Herdr's panes with libghostty-vt, sends your keys and touches, and turns the daemon's agent alerts into Android notifications.</p>
+          <p>Draws Herdr's panes with libghostty-vt, sends your keys and touches, and brings the daemon's agent alerts to you, as system notifications on Android.</p>
         </div>
         <div class="wire">
           <svg viewBox="0 0 160 24" preserveAspectRatio="none" aria-hidden="true">
@@ -166,6 +177,7 @@ I've moved the rate limiter in front of the auth middleware. The tests need a da
             <li><strong>Notifications</strong> when an agent needs you or finishes while the app is in the background.</li>
             <li><strong>Tap an agent</strong> to jump straight to its pane.</li>
             <li><strong>Workspaces</strong> with branch, ahead and behind, and worktree.</li>
+            <li><strong>Long-press</strong> a tab or workspace to rename or close it.</li>
           </ul>
         </div>
         <div>
@@ -183,7 +195,7 @@ I've moved the rate limiter in front of the auth middleware. The tests need a da
             <li><strong>Jump hosts</strong> chained like <code>ssh -J</code>, each hop's host key checked.</li>
             <li><strong>Keys and certificates</strong>: Ed25519 generated on the phone, or import RSA, ECDSA, and Ed25519 keys.</li>
             <li><strong>Import ~/.ssh/config</strong>: every Host becomes a node, ProxyJump included.</li>
-            <li><strong>Secrets</strong> encrypted with a key held by the Android Keystore.</li>
+            <li><strong>Secrets</strong> kept in the iOS Keychain, or encrypted with a key held by the Android Keystore.</li>
           </ul>
         </div>
       </div>
@@ -198,7 +210,7 @@ I've moved the rate limiter in front of the auth middleware. The tests need a da
         <li>
           <div>
             <h3>Install Bellterm</h3>
-            <p><a href="https://dl.bellterm.app/bellterm.apk">Download the APK</a> and open it on your phone. On first launch Bellterm generates an Ed25519 key for this device.</p>
+            <p>On iPhone, <a href="https://testflight.apple.com/join/aYFsFsRf">get the beta on TestFlight</a> and follow the installation instructions. For Android, <a href="https://dl.bellterm.app/bellterm.apk">download the APK</a>. On first launch Bellterm generates an Ed25519 key for this device.</p>
           </div>
         </li>
         <li>
@@ -222,7 +234,7 @@ I've moved the rate limiter in front of the auth middleware. The tests need a da
     <div class="wrap">
       <h2>Requirements</h2>
       <dl class="reqs">
-        <div><dt>Phone</dt><dd>Android 10 (API 29) or newer, on arm64 or x86_64.</dd></div>
+        <div><dt>Phone</dt><dd>For iOS beta compatibility, see <a href="https://testflight.apple.com/join/aYFsFsRf">TestFlight</a>. Android requires version 10 (API 29) or newer, on arm64 or x86_64.</dd></div>
         <div><dt>Host</dt><dd>Herdr 0.9.0 or later and <code>/bin/sh</code>. Windows hosts that only offer PowerShell aren't supported.</dd></div>
         <div><dt>Jump hosts</dt><dd>SSH with TCP forwarding allowed. Nothing else.</dd></div>
       </dl>

@@ -33,8 +33,10 @@ h1 span { color: #86868b; }
 .button strong { display: block; font-size: 1.12rem; font-weight: 600; line-height: 1.4; letter-spacing: -.025em; }
 .button-arrow { padding-left: .75rem; font-size: 1.3rem; }
 .fine { color: #6e6e73; font-size: .75rem; margin: .65rem 0 1.5rem; }
-.android-link { font-size: .9rem; color: #6e6e73; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; gap: .6rem; }
-.android-link:hover { color: #1d1d1f; }
+.stores { display: flex; flex-wrap: wrap; gap: .75rem; }
+.stores .button { flex: 1 1 15rem; justify-content: flex-start; text-align: left; }
+.stores .button strong { white-space: nowrap; }
+.stores .button-arrow { margin-left: auto; }
 /* Duo: terminal canvas with a dedicated right-hand status rail. */
 .phone {
   position: relative; justify-self: center;
@@ -148,6 +150,8 @@ footer p { max-width: 48rem; }
   :lang(zh) h1 { font-size: clamp(2.9rem, 10vw, 4.25rem); }
   .lede { margin-inline: auto; max-width: 28rem; font-size: 1.05rem; }
   .actions { align-items: center; }
+  .stores { flex-direction: column; width: min(100%, 22rem); }
+  .stores .button { flex: none; }
   .phone { width: min(100%, 25rem); transform: none; margin: .5rem 0; }
   .points { padding-bottom: 3.5rem; }
   .flow, .cols, .reqs { grid-template-columns: 1fr; }

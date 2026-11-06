@@ -65,13 +65,15 @@
 <main>
   <div class="wrap hero">
     <div class="hero-copy">
-      <p class="eyebrow">BELLTERM FOR iOS</p>
-      <h1>Your agents.<br>Your iPhone.<br><span>In sync.</span></h1>
+      <p class="eyebrow">BELLTERM FOR iOS &amp; ANDROID</p>
+      <h1>Your agents.<br>Your phone.<br><span>In sync.</span></h1>
       <p class="lede">Your Herdr workspace, wherever you are. Connect over SSH, check on your agents, and step in when they need you. Your work keeps running.</p>
       <div class="actions">
-        <a class="button ios" href="https://testflight.apple.com/join/aYFsFsRf"><img src="/apple.svg" alt="" width="26" height="30"><span><small>Join the iOS beta</small><strong>Get it on TestFlight</strong></span><span class="button-arrow" aria-hidden="true">↗</span></a>
-        <p class="fine">Available now on TestFlight.</p>
-        <a class="android-link" href="https://dl.bellterm.app/bellterm.apk">Also for Android <span aria-hidden="true">↗</span></a>
+        <div class="stores">
+          <a class="button" href="https://testflight.apple.com/join/aYFsFsRf"><img src="/apple.svg" alt="" width="26" height="30"><span><small>iPhone · TestFlight beta</small><strong>Get it on TestFlight</strong></span><span class="button-arrow" aria-hidden="true">↗</span></a>
+          <a class="button" href="https://dl.bellterm.app/bellterm.apk"><img src="/android.svg" alt="" width="28" height="28"><span><small>Android 10 or newer</small><strong>Download the APK</strong></span><span class="button-arrow" aria-hidden="true">↓</span></a>
+        </div>
+        <p class="fine">Native on both platforms. Open source.</p>
       </div>
     </div>
 
@@ -123,11 +125,11 @@ I've moved the rate limiter in front of the auth middleware. The tests need a da
   <div class="wrap points">
     <div class="point">
       <h2>iOS and Android</h2>
-      <p>Start with TestFlight on iPhone. Also available as an Android APK.</p>
+      <p>Native apps for both, built on one Rust core.</p>
     </div>
     <div class="point">
       <h2>Minimal by design</h2>
-      <p>A clean UI, zero distractions, all function.</p>
+      <p>Liquid glass, zero distractions, all function.</p>
     </div>
     <div class="point">
       <h2>Made for small screens</h2>
@@ -146,7 +148,7 @@ I've moved the rate limiter in front of the auth middleware. The tests need a da
       <div class="flow">
         <div class="end">
           <h3>Bellterm</h3>
-          <p>Draws Herdr's panes with libghostty-vt, sends your keys and touches, and turns the daemon's agent alerts into Android notifications.</p>
+          <p>Draws Herdr's panes with libghostty-vt, sends your keys and touches, and brings the daemon's agent alerts to you, as system notifications on Android.</p>
         </div>
         <div class="wire">
           <svg viewBox="0 0 160 24" preserveAspectRatio="none" aria-hidden="true">
@@ -175,6 +177,7 @@ I've moved the rate limiter in front of the auth middleware. The tests need a da
             <li><strong>Notifications</strong> when an agent needs you or finishes while the app is in the background.</li>
             <li><strong>Tap an agent</strong> to jump straight to its pane.</li>
             <li><strong>Workspaces</strong> with branch, ahead and behind, and worktree.</li>
+            <li><strong>Long-press</strong> a tab or workspace to rename or close it.</li>
           </ul>
         </div>
         <div>
@@ -192,7 +195,7 @@ I've moved the rate limiter in front of the auth middleware. The tests need a da
             <li><strong>Jump hosts</strong> chained like <code>ssh -J</code>, each hop's host key checked.</li>
             <li><strong>Keys and certificates</strong>: Ed25519 generated on the phone, or import RSA, ECDSA, and Ed25519 keys.</li>
             <li><strong>Import ~/.ssh/config</strong>: every Host becomes a node, ProxyJump included.</li>
-            <li><strong>Secrets</strong> encrypted with a key held by the Android Keystore.</li>
+            <li><strong>Secrets</strong> kept in the iOS Keychain, or encrypted with a key held by the Android Keystore.</li>
           </ul>
         </div>
       </div>

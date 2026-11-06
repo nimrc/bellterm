@@ -13,6 +13,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -302,6 +305,8 @@ fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, 
                                 dark = dark,
                                 onTab = { connection.focusTab(it) },
                                 onNewTab = { workspace?.let { prompt = Prompt.NewTab(it.id) } },
+                                onRename = { prompt = Prompt.RenameTab(it.id, it.label) },
+                                onClose = { prompt = Prompt.CloseTab(it.id, it.label) },
                             )
                         }
                     }
@@ -525,7 +530,10 @@ private fun ConnectionDot(state: Connection.State) {
     )
 }
 
-/** The focused workspace's tabs as pills in a glass track; the chosen one wears the node's colour. */
+/**
+ * The focused workspace's tabs as pills in a glass track; the chosen one wears
+ * the node's colour. A long press offers renaming or closing that tab.
+ */
 @Composable
 private fun TabStrip(
     tabs: List<Tab>,
@@ -534,8 +542,11 @@ private fun TabStrip(
     dark: Boolean,
     onTab: (String) -> Unit,
     onNewTab: () -> Unit,
+    onRename: (Tab) -> Unit,
+    onClose: (Tab) -> Unit,
 ) {
     val list = rememberLazyListState()
+    val haptics = LocalHapticFeedback.current
     val selected = tabs.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
     LaunchedEffect(selected, tabs.size) { list.animateScrollToItem(selected) }
     val accentText = if (dark) lerp(accent, Color.White, 0.35f) else lerp(accent, Color.Black, 0.2f)
@@ -558,29 +569,54 @@ private fun TabStrip(
                 val chosen = t.id == selectedId
                 val fill by animateColorAsState(if (chosen) accent.copy(alpha = if (dark) 0.3f else 0.18f) else Color.Transparent, label = "tab")
                 val text by animateColorAsState(if (chosen) accentText else MaterialTheme.colorScheme.onSurfaceVariant, label = "tabText")
-                Row(
-                    Modifier
-                        .fillMaxHeight()
-                        .widthIn(min = 52.dp)
-                        .clip(CircleShape)
-                        .background(fill)
-                        .clickable(role = Role.Tab) { onTab(t.id) }
-                        .padding(horizontal = 14.dp)
-                        .testTag("tab:${t.label}"),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-                ) {
-                    if (t.status != AgentStatus.Unknown) {
-                        Box(Modifier.size(7.dp).clip(CircleShape).background(t.status.color()))
+                var menu by remember { mutableStateOf(false) }
+                Box {
+                    Row(
+                        Modifier
+                            .fillMaxHeight()
+                            .widthIn(min = 52.dp)
+                            .clip(CircleShape)
+                            .background(fill)
+                            .combinedClickable(
+                                role = Role.Tab,
+                                onClick = { onTab(t.id) },
+                                onLongClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menu = true
+                                },
+                                onLongClickLabel = stringResource(R.string.more),
+                            )
+                            .padding(horizontal = 14.dp)
+                            .testTag("tab:${t.label}"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                    ) {
+                        if (t.status != AgentStatus.Unknown) {
+                            Box(Modifier.size(7.dp).clip(CircleShape).background(t.status.color()))
+                        }
+                        Text(
+                            t.label,
+                            color = text,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
-                    Text(
-                        t.label,
-                        color = text,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    GlassMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.rename_tab)) },
+                            leadingIcon = { Icon(Icons.Default.Edit, null, modifier = Modifier.size(20.dp)) },
+                            onClick = { menu = false; onRename(t) },
+                            contentPadding = PaddingValues(horizontal = 18.dp),
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.close_tab), color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = { Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp)) },
+                            onClick = { menu = false; onClose(t) },
+                            contentPadding = PaddingValues(horizontal = 18.dp),
+                        )
+                    }
                 }
             }
         }

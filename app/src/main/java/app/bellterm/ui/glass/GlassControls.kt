@@ -66,6 +66,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
@@ -554,7 +556,8 @@ fun GlassAlertDialog(
         dismissButton = dismissButton,
         icon = icon,
         title = title,
-        text = text,
+        // A dialog is its own window, outside the root that exposes test tags.
+        text = text?.let { { Box(Modifier.semantics { testTagsAsResourceId = true }) { it() } } },
         shape = RoundedCornerShape(30.dp),
         containerColor = menuColor(),
         tonalElevation = 0.dp,

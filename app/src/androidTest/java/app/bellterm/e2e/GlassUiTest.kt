@@ -211,17 +211,33 @@ class GlassUiTest {
         shot("14_session_menu")
         device.pressBack()
 
+        // A long press on a tab offers rename and close; both dialogs open and are cancelled.
+        val tab = need(By.res(Pattern.compile("tab:.*")), "a tab pill")
+        val label = tab.resourceName.substringAfter("tab:")
+        tab.longClick()
+        need(By.text(string(R.string.close_tab)))
+        shot("15_tab_menu")
+        need(By.text(string(R.string.rename_tab))).click()
+        assertEquals(label, need(By.res("prompt_field")).text)
+        need(By.text(string(android.R.string.cancel))).click()
+        need(By.res(Pattern.compile("tab:.*"))).longClick()
+        need(By.text(string(R.string.close_tab))).click()
+        need(By.text(string(R.string.close_tab_title, label)))
+        shot("16_close_tab_confirm")
+        need(By.text(string(android.R.string.cancel))).click()
+        assertTrue("the tab is still there", device.wait(Until.hasObject(By.res("tab:$label")), TIMEOUT))
+
         // The new-tab dialog opens and is dismissed; the user's session is never changed.
         need(By.res("session:new_tab")).click()
         need(By.text(string(R.string.tab_name)))
-        shot("15_new_tab_dialog")
+        shot("17_new_tab_dialog")
         need(By.text(string(android.R.string.cancel))).click()
 
         device.pressBack()
         need(By.res("node:$HOST_NODE"))
         // The card's status pill starts with "Attached", before the counts.
         need(By.textStartsWith(string(R.string.attached_summary, 0, 0).substringBefore("·").trim()))
-        shot("16_home_attached")
+        shot("18_home_attached")
         deleteNode(HOST_NODE)
         assertTrue(device.wait(Until.gone(By.res("node:$HOST_NODE")), TIMEOUT))
         assertTrue("deleting the node disconnects it", waitFor { app.connections.value.isEmpty() })

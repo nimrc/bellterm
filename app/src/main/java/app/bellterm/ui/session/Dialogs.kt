@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import app.bellterm.R
@@ -93,7 +94,7 @@ private fun RenameDialog(title: String, initial: String, onDone: () -> Unit, onR
         onDismissRequest = onDone,
         title = { Text(title) },
         text = {
-            GlassField(label, { label = it }, singleLine = true, modifier = Modifier.fillMaxWidth().focusRequester(focus))
+            GlassField(label, { label = it }, singleLine = true, modifier = Modifier.fillMaxWidth().focusRequester(focus).testTag("prompt_field"))
         },
         confirmButton = {
             TextButton(enabled = label.isNotBlank(), onClick = { onRename(label.trim()); onDone() }) {

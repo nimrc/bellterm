@@ -203,6 +203,22 @@ class GlassUiTest {
         need(By.res("session:drawer_sheet"))
         need(By.res(Pattern.compile("workspace:.*")), "a workspace in the drawer")
         shot("13_drawer")
+
+        // A long press on a workspace offers rename and close; both dialogs open and are cancelled.
+        val workspace = need(By.res(Pattern.compile("workspace:.*")))
+        val name = workspace.resourceName.substringAfter("workspace:")
+        workspace.longClick()
+        need(By.text(string(R.string.close_workspace)))
+        shot("13b_workspace_menu")
+        need(By.text(string(R.string.rename_workspace))).click()
+        assertEquals(name, need(By.res("prompt_field")).text)
+        need(By.text(string(android.R.string.cancel))).click()
+        need(By.res("workspace:$name")).longClick()
+        need(By.text(string(R.string.close_workspace))).click()
+        need(By.text(string(R.string.close_workspace_title, name)))
+        shot("13c_close_workspace_confirm")
+        need(By.text(string(android.R.string.cancel))).click()
+        assertTrue("the workspace is still there", device.wait(Until.hasObject(By.res("workspace:$name")), TIMEOUT))
         device.pressBack()
         assertTrue(device.wait(Until.gone(By.res("session:drawer_sheet")), TIMEOUT))
 

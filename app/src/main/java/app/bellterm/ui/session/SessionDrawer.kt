@@ -3,9 +3,11 @@ package app.bellterm.ui.session
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,20 +19,28 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import app.bellterm.R
 import app.bellterm.core.Agent
@@ -42,13 +52,16 @@ import app.bellterm.data.Node
 import app.bellterm.ui.components.NodeAvatar
 import app.bellterm.ui.components.Pill
 import app.bellterm.ui.glass.GlassButton
+import app.bellterm.ui.glass.GlassMenu
+import app.bellterm.ui.glass.GlassMenuItem
 import app.bellterm.ui.glass.menuColor
 import app.bellterm.ui.theme.color
 
 /**
  * Herdr's sidebar as a navigation drawer: every workspace with its branch and
- * the daemon's status dot, and every agent. Tabs are switched from the
- * session's own tab row, not here.
+ * the daemon's status dot, and every agent. A long press on a workspace
+ * offers renaming or closing it. Tabs are switched from the session's own tab
+ * row, not here.
  */
 @Composable
 fun SessionDrawer(
@@ -59,6 +72,8 @@ fun SessionDrawer(
     onWorkspace: (Workspace) -> Unit,
     onAgent: (Agent) -> Unit,
     onNewWorkspace: () -> Unit,
+    onRenameWorkspace: (Workspace) -> Unit,
+    onCloseWorkspace: (Workspace) -> Unit,
 ) {
     ModalDrawerSheet(
         drawerShape = RoundedCornerShape(topEnd = 32.dp, bottomEnd = 32.dp),
@@ -112,6 +127,15 @@ fun SessionDrawer(
                     detail = workspaceDetail(workspace),
                     badge = workspace.number.toString(),
                     modifier = Modifier.testTag("workspace:${workspace.label}"),
+                    menu = { close ->
+                        GlassMenuItem(stringResource(R.string.rename_workspace), Icons.Default.Edit, onClick = { close(); onRenameWorkspace(workspace) })
+                        GlassMenuItem(
+                            stringResource(R.string.close_workspace),
+                            Icons.Default.Delete,
+                            onClick = { close(); onCloseWorkspace(workspace) },
+                            destructive = true,
+                        )
+                    },
                 )
             }
             item {
@@ -152,42 +176,60 @@ private fun DrawerRow(
     detail: String?,
     badge: String? = null,
     modifier: Modifier = Modifier,
+    /** Actions a long press offers; they receive a callback that closes the menu. */
+    menu: (@Composable ColumnScope.(close: () -> Unit) -> Unit)? = null,
 ) {
     val fill by animateColorAsState(if (selected) accent.copy(alpha = 0.18f) else Color.Transparent, label = "row")
-    Row(
-        modifier
-            .padding(vertical = 2.dp)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(fill)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        leading()
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            detail?.takeIf { it.isNotEmpty() }?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    val haptics = LocalHapticFeedback.current
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            modifier
+                .padding(vertical = 2.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(fill)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = menu?.let {
+                        {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            open = true
+                        }
+                    },
+                    onLongClickLabel = menu?.let { stringResource(R.string.more) },
+                )
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            leading()
+            Column(Modifier.weight(1f)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                detail?.takeIf { it.isNotEmpty() }?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            badge?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                )
             }
         }
-        badge?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-            )
+        menu?.let { items ->
+            GlassMenu(expanded = open, onDismissRequest = { open = false }, offset = DpOffset(12.dp, 0.dp)) { items { open = false } }
         }
     }
 }

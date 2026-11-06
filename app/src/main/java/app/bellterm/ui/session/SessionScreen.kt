@@ -109,6 +109,7 @@ import app.bellterm.ui.components.PasswordsDialog
 import app.bellterm.ui.glass.GlassButton
 import app.bellterm.ui.glass.GlassIconButton
 import app.bellterm.ui.glass.GlassMenu
+import app.bellterm.ui.glass.GlassMenuItem
 import app.bellterm.ui.glass.GlassSnackbarHost
 import app.bellterm.ui.glass.GroupShape
 import app.bellterm.ui.glass.IconBadge
@@ -225,6 +226,8 @@ fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, 
                 onWorkspace = { connection.focusWorkspace(it.id); scope.launch { drawer.close() } },
                 onAgent = { connection.focusPane(it.pane); scope.launch { drawer.close() } },
                 onNewWorkspace = { connection.newWorkspace(workspace?.id); scope.launch { drawer.close() } },
+                onRenameWorkspace = { prompt = Prompt.RenameWorkspace(it.id, it.label) },
+                onCloseWorkspace = { prompt = Prompt.CloseWorkspace(it.id, it.label) },
             )
         },
     ) {
@@ -604,18 +607,8 @@ private fun TabStrip(
                         )
                     }
                     GlassMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.rename_tab)) },
-                            leadingIcon = { Icon(Icons.Default.Edit, null, modifier = Modifier.size(20.dp)) },
-                            onClick = { menu = false; onRename(t) },
-                            contentPadding = PaddingValues(horizontal = 18.dp),
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.close_tab), color = MaterialTheme.colorScheme.error) },
-                            leadingIcon = { Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp)) },
-                            onClick = { menu = false; onClose(t) },
-                            contentPadding = PaddingValues(horizontal = 18.dp),
-                        )
+                        GlassMenuItem(stringResource(R.string.rename_tab), Icons.Default.Edit, onClick = { menu = false; onRename(t) })
+                        GlassMenuItem(stringResource(R.string.close_tab), Icons.Default.Close, onClick = { menu = false; onClose(t) }, destructive = true)
                     }
                 }
             }

@@ -37,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
@@ -515,6 +516,18 @@ fun GlassMenu(
         tonalElevation = 0.dp,
         shadowElevation = 18.dp,
         content = content,
+    )
+}
+
+/** One action in a [GlassMenu]; [destructive] ones are drawn in the error colour. */
+@Composable
+fun GlassMenuItem(label: String, icon: ImageVector, onClick: () -> Unit, destructive: Boolean = false) {
+    val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    DropdownMenuItem(
+        text = { Text(label, color = color) },
+        leadingIcon = { Icon(icon, null, tint = color.copy(alpha = 0.8f), modifier = Modifier.size(20.dp)) },
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 18.dp),
     )
 }
 

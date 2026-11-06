@@ -88,7 +88,7 @@ fn a_failed_download_is_not_run() {
 #[test]
 fn host_output_is_shown_as_plain_text() {
     let raw = b"\x1b[32mok\x1b[0m done\r\n10%\r55%\r100%\nbell\x07 tab\there\n";
-    assert_eq!(plain_text(raw), "ok done\n100%\nbell tab\there");
+    assert_eq!(plain_text(raw), "ok done\n100%\nbell tab    here");
 }
 
 #[test]

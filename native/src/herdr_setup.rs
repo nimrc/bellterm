@@ -75,19 +75,19 @@ impl Outcome {
     }
 }
 
-/// Host output is untrusted: drop escape sequences, and keep what a carriage
-/// return left visible on each line, as a progress bar would end up.
+/// Host output is untrusted: keep what a carriage return left visible on each
+/// line, as a progress bar ends up, then drop escape sequences and controls,
+/// which the stripper also does to tabs unless they are spaces first.
 pub(crate) fn plain_text(bytes: &[u8]) -> String {
-    let text = strip_ansi_escapes::strip_str(String::from_utf8_lossy(bytes));
-    text.lines()
+    String::from_utf8_lossy(bytes)
+        .lines()
         .map(|line| {
-            line.trim_end_matches('\r')
+            let visible = line
+                .trim_end_matches('\r')
                 .rsplit('\r')
                 .next()
-                .unwrap_or_default()
-                .chars()
-                .filter(|c| *c == '\t' || !c.is_control())
-                .collect::<String>()
+                .unwrap_or_default();
+            strip_ansi_escapes::strip_str(visible.replace('\t', "    "))
         })
         .collect::<Vec<_>>()
         .join("\n")

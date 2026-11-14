@@ -227,3 +227,17 @@ footer p { max-width: 48rem; }
   .note { font-size: .6rem; padding: .55rem; gap: .1rem .35rem; }
   .note img { width: 1.4rem; height: 1.4rem; }
 }
+
+/* Legal and support pages */
+.doc { max-width: 46rem; padding-block: 4rem 5rem; }
+.doc h1 { font-size: clamp(2.25rem, 4.4vw, 3.25rem); letter-spacing: -.05em; margin: 0 0 1rem; }
+.doc .meta { color: var(--muted); font-size: .9rem; margin: 0 0 3rem; }
+.doc h2 { font: 650 1.5rem/1.25 var(--display); letter-spacing: -.03em; margin: 3rem 0 .75rem; max-width: none; }
+.doc h3 { font-size: 1.05rem; margin: 1.75rem 0 .5rem; }
+.doc p, .doc li { color: #35353a; }
+.doc ul { margin: 0 0 1rem; padding-left: 1.2rem; }
+.doc li { margin-bottom: .5rem; }
+.doc .summary { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 1.5rem 1.75rem; margin: 0 0 1rem; }
+.doc .summary p:last-child { margin-bottom: 0; }
+.doc :lang(zh), :lang(zh) .doc { line-height: 1.8; }
+@media (max-width: 760px) { .doc { padding-block: 2.5rem 3.5rem; } .doc h1 { font-size: clamp(1.9rem, 8vw, 2.5rem); } }

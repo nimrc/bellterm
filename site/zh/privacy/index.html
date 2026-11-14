@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>隐私政策 — Bellterm</title>
+<meta name="description" content="Bellterm 在手机上存什么、通过 SSH 发到哪、以及从不收集什么。Bellterm 没有账号，也没有统计。">
+<meta name="theme-color" content="#f5f5f7">
+<link rel="canonical" href="https://bellterm.app/zh/privacy/">
+<link rel="alternate" hreflang="en" href="https://bellterm.app/privacy/">
+<link rel="alternate" hreflang="zh-CN" href="https://bellterm.app/zh/privacy/">
+<link rel="alternate" hreflang="x-default" href="https://bellterm.app/privacy/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bellterm">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="隐私政策 — Bellterm">
+<meta property="og:description" content="Bellterm 在手机上存什么、通过 SSH 发到哪、以及从不收集什么。">
+<meta property="og:url" content="https://bellterm.app/zh/privacy/">
+<meta property="og:image" content="https://bellterm.app/og-zh.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/zh/"><img src="/icon.svg" alt="">Bellterm</a>
+  <nav aria-label="主导航">
+    <a href="/zh/">首页</a>
+    <a href="https://github.com/nimrc/bellterm">GitHub</a>
+    <a href="/privacy/" hreflang="en" lang="en">English</a>
+  </nav>
+</header>
+
+<main class="wrap doc">
+  <h1>隐私政策</h1>
+  <p class="meta">2026 年 11 月 13 日起生效</p>
+
+  <div class="summary">
+    <p>Bellterm 没有账号，也没有我们自己的服务器。App 把你手机直接连到你填写的那台 SSH 主机——你自己的机器，或者你指定的跳板机。它保存的东西都留在你手机上。</p>
+  </div>
+
+  <h2>手机上保存了什么</h2>
+  <ul>
+    <li><strong>连接列表。</strong>你添加的主机——名称、地址、端口、用户名、会话、分组、保活设置——以及你信任过的主机密钥指纹，存在 App 内的文件里，带文件保护。</li>
+    <li><strong>密码。</strong>你选择保存的主机密码存在 iOS 钥匙串（Android 上用 Android Keystore 里的密钥加密），只在这台设备上、首次解锁后可读，不会同步到 iCloud。</li>
+    <li><strong>SSH 密钥。</strong>App 首次启动生成的 Ed25519 密钥和你导入的密钥，存在同一处受保护的位置；密钥名称和指纹另外存在受保护的文件里。</li>
+    <li><strong>设置和字体。</strong>你选的主题、字号、触感反馈开关，以及你导入的字体。</li>
+    <li><strong>终端内容。</strong>只在本次会话的内存里，不写入存储，断开或退出即消失。</li>
+  </ul>
+
+  <h2>留在你主机上的内容</h2>
+  <p>你的 Herdr 会话、agent 对话、文件和 shell 历史都在你连接的那台机器上，不在手机里，也不在我们这里。这些数据保留多久由那台机器和你决定。</p>
+
+  <h2>Bellterm 不收集什么</h2>
+  <ul>
+    <li>没有账号、邮箱、姓名或手机号。</li>
+    <li>没有统计、使用数据、崩溃上报或广告 SDK。</li>
+    <li>不跨 App 或网站跟踪你，不使用广告标识符。</li>
+    <li>不读取位置、通讯录、照片、相机、麦克风或健康数据。</li>
+  </ul>
+
+  <h2>你的流量去哪</h2>
+  <p>Bellterm 只向你填写的主机、经你填写的跳板机、在你选的端口上建立 SSH 连接。就这些。没有 Bellterm 后端、没有中转、没有云端账号，你在 App 里做的事不经过我们运行的服务端。</p>
+
+  <h2>第三方</h2>
+  <p>没有任何第三方从 Bellterm 拿到你的数据。App 内置的开源组件全部在本机运行，自己不会联网：</p>
+  <ul>
+    <li><strong>libghostty-vt</strong>，终端模拟器，以及它自带的 simdutf 库。</li>
+    <li><strong>Rust crates</strong>，用于 SSH 客户端和协议：<code>herdr-client</code>、<code>herdr-protocol</code>、<code>rustix</code>、<code>base64</code>、<code>serde</code>。</li>
+    <li><strong>随包字体</strong>，包括 JetBrains Mono。</li>
+  </ul>
+  <p>Apple（iOS）和 Google（Android）按各自的政策处理系统服务，比如通知。你从 App 里点开链接——本页、支持页、GitHub 源码——时由浏览器打开，适用那个网站自己的政策。</p>
+
+  <h2>权限</h2>
+  <p>Bellterm 申请通知权限，用来在 agent 需要输入时通知你；申请本地网络权限，用来连到你局域网里的主机。两者都可以不给，不给通知也能正常使用。除此之外不再申请别的权限。</p>
+
+  <h2>数据的保留与删除</h2>
+  <p>我们不保存你数据的任何副本，所以没有需要保留的东西，也没有账号需要注销。在你手机上：</p>
+  <ul>
+    <li>删除主机，即删掉它保存的连接信息。</li>
+    <li>删除密钥，即把私钥从钥匙串（或 Android Keystore）里删掉。</li>
+    <li>删除 App，会一并删掉它创建的文件，包括你的主机列表。</li>
+  </ul>
+  <p>需要提醒一点：iOS 在删除 App 后可能保留钥匙串条目。如果想让保存的密码或私钥彻底消失，请先在 App 里删掉它，再删除 App。</p>
+
+  <h2>政策变更</h2>
+  <p>政策有变化时，新版本会出现在这里，并更新生效日期。</p>
+
+  <h2>联系我们</h2>
+  <p>隐私相关问题请发到 <a href="mailto:fyibmsd+apple@gmail.com">fyibmsd+apple@gmail.com</a>。Bellterm 是独立的开源项目，与 Herdr 无关。</p>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Bellterm 可以配合 Herdr 使用，但与 Herdr 或 herdr.dev 没有任何隶属、背书或支持关系。</p>
+    <p>以 Apache License 2.0 发布，<a href="https://github.com/nimrc/bellterm">源码在 GitHub</a>。<a href="/zh/support/">支持</a> · <a href="/zh/privacy/">隐私</a> · <a href="/privacy/" hreflang="en" lang="en">English</a></p>
+  </div>
+</footer>
+</body>
+</html>

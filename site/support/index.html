@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Support — Bellterm</title>
+<meta name="description" content="Get help with Bellterm: requirements, first connection, keys and passwords, removing saved data, and how to reach us.">
+<meta name="theme-color" content="#f5f5f7">
+<link rel="canonical" href="https://bellterm.app/support/">
+<link rel="alternate" hreflang="en" href="https://bellterm.app/support/">
+<link rel="alternate" hreflang="zh-CN" href="https://bellterm.app/zh/support/">
+<link rel="alternate" hreflang="x-default" href="https://bellterm.app/support/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bellterm">
+<meta property="og:title" content="Support — Bellterm">
+<meta property="og:description" content="Get help with Bellterm: requirements, first connection, keys and passwords, removing saved data, and how to reach us.">
+<meta property="og:url" content="https://bellterm.app/support/">
+<meta property="og:image" content="https://bellterm.app/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/"><img src="/icon.svg" alt="">Bellterm</a>
+  <nav aria-label="Main">
+    <a href="/">Home</a>
+    <a href="https://github.com/nimrc/bellterm">GitHub</a>
+    <a href="/zh/support/" hreflang="zh-CN" lang="zh-CN">中文</a>
+  </nav>
+</header>
+
+<main class="wrap doc">
+  <h1>Support</h1>
+  <p class="meta">Bellterm is a native iOS and Android client for Herdr, over SSH.</p>
+
+  <div class="summary">
+    <p>Write to <a href="mailto:fyibmsd+apple@gmail.com">fyibmsd+apple@gmail.com</a> and say what happened, which phone and iOS or Android version you use, and what the screen showed. If you can, attach a screenshot. Bugs and feature requests can also go to <a href="https://github.com/nimrc/bellterm/issues">GitHub Issues</a>.</p>
+  </div>
+
+  <h2>Common questions</h2>
+
+  <h3>What do I need before the first connection?</h3>
+  <p>A machine you can reach over SSH, with Herdr 0.9.0 or later and <code>/bin/sh</code> on it. On iPhone, install the beta from <a href="https://testflight.apple.com/join/aYFsFsRf">TestFlight</a>; on Android 10 or newer, <a href="https://dl.bellterm.app/bellterm.apk">download the APK</a>. Jump hosts need SSH with TCP forwarding allowed.</p>
+
+  <h3>How do I connect the first time?</h3>
+  <p>On first launch Bellterm generates an Ed25519 key for the device. Open Keys &amp; certificates, copy the public key, add it to <code>~/.ssh/authorized_keys</code> on the host, then add the host as a node — or import your <code>~/.ssh/config</code>. Check that the host key fingerprint matches what the host reports the first time you connect.</p>
+
+  <h3>Do I need an account?</h3>
+  <p>No. There is nothing to sign up for. Bellterm connects your phone straight to your own machines and has no server of ours in between, so there is no account, subscription or cloud storage.</p>
+
+  <h3>Where are my passwords and keys stored?</h3>
+  <p>In the iOS Keychain, or encrypted with a key held by the Android Keystore. They stay on the device, readable only on it, and are never uploaded. Your host list and the fingerprints you trusted are kept in a protected file inside the app.</p>
+
+  <h3>How do I remove what Bellterm saved?</h3>
+  <p>Delete a node to remove that host's details, and delete a key to remove its private key. Deleting the app removes its files too. iOS can keep Keychain items after an app is deleted, so delete saved passwords and keys in the app first if you want them gone for good. There is no account to delete, because there is no account.</p>
+
+  <h3>Terminal text looks wrong</h3>
+  <p>Try another colour scheme in settings, and check the font size. Nerd Font glyphs need a font that has them; import your own font if the bundled ones do not match your prompt.</p>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Bellterm works with Herdr but is not affiliated with, endorsed by, or supported by Herdr or herdr.dev.</p>
+    <p>Released under the Apache License 2.0. <a href="https://github.com/nimrc/bellterm">Source on GitHub</a>. <a href="/support/">Support</a> · <a href="/privacy/">Privacy</a> · <a href="/zh/support/" hreflang="zh-CN" lang="zh-CN">中文</a></p>
+  </div>
+</footer>
+</body>
+</html>

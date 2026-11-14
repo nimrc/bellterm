@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy policy — Bellterm</title>
+<meta name="description" content="What Bellterm stores on your phone, what it sends over SSH, and what it never collects. Bellterm has no accounts and no analytics.">
+<meta name="theme-color" content="#f5f5f7">
+<link rel="canonical" href="https://bellterm.app/privacy/">
+<link rel="alternate" hreflang="en" href="https://bellterm.app/privacy/">
+<link rel="alternate" hreflang="zh-CN" href="https://bellterm.app/zh/privacy/">
+<link rel="alternate" hreflang="x-default" href="https://bellterm.app/privacy/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bellterm">
+<meta property="og:title" content="Privacy policy — Bellterm">
+<meta property="og:description" content="What Bellterm stores on your phone, what it sends over SSH, and what it never collects.">
+<meta property="og:url" content="https://bellterm.app/privacy/">
+<meta property="og:image" content="https://bellterm.app/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/"><img src="/icon.svg" alt="">Bellterm</a>
+  <nav aria-label="Main">
+    <a href="/">Home</a>
+    <a href="https://github.com/nimrc/bellterm">GitHub</a>
+    <a href="/zh/privacy/" hreflang="zh-CN" lang="zh-CN">中文</a>
+  </nav>
+</header>
+
+<main class="wrap doc">
+  <h1>Privacy policy</h1>
+  <p class="meta">Effective 13 November 2026</p>
+
+  <div class="summary">
+    <p>Bellterm has no accounts and no servers. The app connects your phone straight to SSH hosts you enter yourself — your own machine, a jump host you choose. Everything it saves stays on your phone.</p>
+  </div>
+
+  <h2>What Bellterm stores on your phone</h2>
+  <ul>
+    <li><strong>Connection list.</strong> The hosts you add — name, address, port, username, session, group, keepalive — and the fingerprints of host keys you have trusted. Stored in a file inside the app, with file protection on.</li>
+    <li><strong>Passwords.</strong> A password you choose to save for a host goes to the iOS Keychain (on Android, encrypted with a key held by the Android Keystore). It is readable only on this device, only after first unlock, and is never synced to iCloud.</li>
+    <li><strong>SSH keys.</strong> The Ed25519 key the app generates on first launch, and any key you import, sit in the same protected storage. Key names and fingerprints are kept in a separate protected file.</li>
+    <li><strong>Settings and fonts.</strong> Your theme, font size and haptics choices, and any font you import.</li>
+    <li><strong>Terminal content.</strong> Kept in memory for the session only. It is not written to storage, and it is gone when you disconnect or quit.</li>
+  </ul>
+
+  <h2>What stays on your host</h2>
+  <p>Your Herdr sessions, agent conversations, files and shell history live on the machine you connect to, not on your phone and not with us. How long that data is kept is decided by that machine and by you.</p>
+
+  <h2>What Bellterm does not collect</h2>
+  <ul>
+    <li>No account, email address, name or phone number.</li>
+    <li>No analytics, usage statistics, crash reporting or advertising SDK.</li>
+    <li>No tracking across apps or websites, and no advertising identifier.</li>
+    <li>No location, contacts, photos, camera, microphone or health data.</li>
+  </ul>
+
+  <h2>Where your traffic goes</h2>
+  <p>Bellterm opens an SSH connection to the host you typed, and through any jump host you typed, on the port you chose. That is all. There is no Bellterm backend, no relay and no cloud account, so nothing you do in the app passes through a server we run. Self-hosted, end to end.</p>
+
+  <h2>Third parties</h2>
+  <p>No third party receives your data from Bellterm. The app bundles open-source components that run entirely on your device and make no network requests of their own:</p>
+  <ul>
+    <li><strong>libghostty-vt</strong>, the terminal emulator, with the simdutf library it includes.</li>
+    <li><strong>Rust crates</strong> used for the SSH client and protocol: <code>herdr-client</code>, <code>herdr-protocol</code>, <code>rustix</code>, <code>base64</code>, <code>serde</code>.</li>
+    <li><strong>Bundled fonts</strong>, including JetBrains Mono.</li>
+  </ul>
+  <p>Apple (iOS) and Google (Android) handle the system services the app uses, such as notifications, under their own policies. When you tap a link from the app — this page, the support page, the source on GitHub — your browser opens it, and that site's own policy applies.</p>
+
+  <h2>Permissions</h2>
+  <p>Bellterm asks for notifications so it can tell you when an agent needs input. It asks for local network access so it can reach hosts on your local network. Both are optional; the app works without notifications. Nothing else is requested.</p>
+
+  <h2>Keeping and deleting your data</h2>
+  <p>We hold no copy of your data, so there is nothing for us to keep, and no account to delete. On your phone:</p>
+  <ul>
+    <li>Delete a host to remove its saved connection details.</li>
+    <li>Delete a key to remove its private key from the Keychain (or the Android Keystore).</li>
+    <li>Deleting the app removes the files it created, including your host list.</li>
+  </ul>
+  <p>One caution: iOS can keep Keychain items after an app is deleted. If you want a saved password or private key gone for good, delete it in the app before you delete the app.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes, the new version appears here with a new effective date.</p>
+
+  <h2>Contact</h2>
+  <p>Privacy questions: <a href="mailto:fyibmsd+apple@gmail.com">fyibmsd+apple@gmail.com</a>. Bellterm is an independent, open-source project, not affiliated with Herdr.</p>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Bellterm works with Herdr but is not affiliated with, endorsed by, or supported by Herdr or herdr.dev.</p>
+    <p>Released under the Apache License 2.0. <a href="https://github.com/nimrc/bellterm">Source on GitHub</a>. <a href="/support/">Support</a> · <a href="/privacy/">Privacy</a> · <a href="/zh/privacy/" hreflang="zh-CN" lang="zh-CN">中文</a></p>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>支持 — Bellterm</title>
+<meta name="description" content="Bellterm 帮助：使用要求、第一次连接、密钥和密码、删除已保存的数据，以及怎么联系我们。">
+<meta name="theme-color" content="#f5f5f7">
+<link rel="canonical" href="https://bellterm.app/zh/support/">
+<link rel="alternate" hreflang="en" href="https://bellterm.app/support/">
+<link rel="alternate" hreflang="zh-CN" href="https://bellterm.app/zh/support/">
+<link rel="alternate" hreflang="x-default" href="https://bellterm.app/support/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bellterm">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="支持 — Bellterm">
+<meta property="og:description" content="Bellterm 帮助：使用要求、第一次连接、密钥和密码、删除已保存的数据，以及怎么联系我们。">
+<meta property="og:url" content="https://bellterm.app/zh/support/">
+<meta property="og:image" content="https://bellterm.app/og-zh.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/zh/"><img src="/icon.svg" alt="">Bellterm</a>
+  <nav aria-label="主导航">
+    <a href="/zh/">首页</a>
+    <a href="https://github.com/nimrc/bellterm">GitHub</a>
+    <a href="/support/" hreflang="en" lang="en">English</a>
+  </nav>
+</header>
+
+<main class="wrap doc">
+  <h1>支持</h1>
+  <p class="meta">Bellterm 是 Herdr 的原生 iOS 和 Android 客户端，通过 SSH 连接。</p>
+
+  <div class="summary">
+    <p>写信到 <a href="mailto:fyibmsd+apple@gmail.com">fyibmsd+apple@gmail.com</a>，说明发生了什么、用的什么手机和系统版本、屏幕上显示了什么，方便的话附一张截图。问题反馈和功能建议也可以发到 <a href="https://github.com/nimrc/bellterm/issues">GitHub Issues</a>。</p>
+  </div>
+
+  <h2>常见问题</h2>
+
+  <h3>第一次连接前需要准备什么？</h3>
+  <p>一台能用 SSH 连上的机器，上面装了 Herdr 0.9.0 或更新版本，并且有 <code>/bin/sh</code>。iPhone 上从 <a href="https://testflight.apple.com/join/aYFsFsRf">TestFlight</a> 装测试版；Android 10 或更新版本可以<a href="https://dl.bellterm.app/bellterm.apk">下载 APK</a>。跳板机需要允许 SSH 的 TCP 转发。</p>
+
+  <h3>第一次怎么连上？</h3>
+  <p>首次启动时 Bellterm 会为这台设备生成一个 Ed25519 密钥。打开“密钥与证书”，复制公钥，加到主机上的 <code>~/.ssh/authorized_keys</code>，再把主机添加成节点——或者直接导入 <code>~/.ssh/config</code>。第一次连接时核对主机密钥指纹和主机上显示的是否一致。</p>
+
+  <h3>需要注册账号吗？</h3>
+  <p>不需要。没有要注册的东西。Bellterm 把你手机直接连到你自己的机器，中间没有我们的服务器，所以没有账号、订阅或云端存储。</p>
+
+  <h3>密码和密钥存在哪里？</h3>
+  <p>iOS 上存在钥匙串，Android 上用 Android Keystore 里的密钥加密。它们留在设备上，只在这台设备上可读，不会上传。主机列表和信任过的指纹存在 App 内的受保护文件里。</p>
+
+  <h3>怎么删掉 Bellterm 保存的东西？</h3>
+  <p>删除节点即删掉那台主机的信息，删除密钥即删掉对应私钥。删除 App 也会删掉它创建的文件。iOS 在删除 App 后可能保留钥匙串条目，所以想让保存的密码和密钥彻底消失，请先在 App 里删掉。没有账号可注销，因为本来就没有账号。</p>
+
+  <h3>终端显示不正常</h3>
+  <p>先在设置里换个配色，再看字号是否合适。Nerd Font 图标需要支持它的字体，如果自带字体和你的提示符不搭，可以导入自己的字体。</p>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Bellterm 可以配合 Herdr 使用，但与 Herdr 或 herdr.dev 没有任何隶属、背书或支持关系。</p>
+    <p>以 Apache License 2.0 发布，<a href="https://github.com/nimrc/bellterm">源码在 GitHub</a>。<a href="/zh/support/">支持</a> · <a href="/zh/privacy/">隐私</a> · <a href="/support/" hreflang="en" lang="en">English</a></p>
+  </div>
+</footer>
+</body>
+</html>

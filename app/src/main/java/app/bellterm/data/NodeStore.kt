@@ -51,9 +51,34 @@ class NodeStore(context: Context) {
         save(_nodes.value.map { byId.getValue(it.id) } + added.filter { new -> _nodes.value.none { it.id == new.id } })
     }
 
-    /** Removes the node; nodes that jumped through it now connect directly. */
+    /**
+     * Removes the node with the machines it saved, which only it can reach;
+     * other nodes that jumped through it now connect directly.
+     */
     fun delete(node: Node) {
-        save(_nodes.value.filterNot { it.id == node.id }.map { if (it.jumpId == node.id) it.copy(jumpId = null) else it })
+        save(
+            _nodes.value
+                .filterNot { it.id == node.id || (it.machine != null && it.jumpId == node.id) }
+                .map { if (it.jumpId == node.id) it.copy(jumpId = null) else it },
+        )
+    }
+
+    /** The node for [host]'s saved machine [target] and [session], added when new. */
+    fun machine(host: Node, label: String, target: String, session: String): Node {
+        _nodes.value.firstOrNull { it.jumpId == host.id && it.machine == target && it.session == session }?.let { return it }
+        val node = Node(
+            name = label,
+            address = target,
+            user = host.user,
+            session = session,
+            jumpId = host.id,
+            group = host.group,
+            color = host.color,
+            keepAlive = host.keepAlive,
+            machine = target,
+        )
+        upsert(node)
+        return node
     }
 
     fun touch(node: Node) {
@@ -75,9 +100,9 @@ class NodeStore(context: Context) {
         return Result.success(chain.toList())
     }
 
-    /** Nodes that may serve as [node]'s jump host without making a loop. */
+    /** Nodes that may serve as [node]'s jump host without making a loop; never a saved machine. */
     fun jumpCandidates(node: Node?): List<Node> = _nodes.value.filter { candidate ->
-        candidate.id != node?.id && generateSequence(candidate) { get(it.jumpId) }.take(Node.MAX_HOPS).none { it.id == node?.id }
+        candidate.id != node?.id && candidate.machine == null && generateSequence(candidate) { get(it.jumpId) }.take(Node.MAX_HOPS).none { it.id == node?.id }
     }
 
     // Known hosts: "host:port" -> "SHA256:…", as the SSH layer names them.

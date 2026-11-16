@@ -16,6 +16,9 @@ use zeroize::Zeroizing;
 struct Document {
     session: String,
     hops: Vec<HopDocument>,
+    /// A saved machine of the last hop's Herdr, reached by that host's `ssh`.
+    #[serde(default)]
+    relay: Option<String>,
     #[serde(default)]
     keepalive_secs: Option<u64>,
     cols: u16,
@@ -79,6 +82,7 @@ pub fn parse(json: &str) -> Result<Config> {
         route: Route {
             hops,
             session: document.session,
+            relay: document.relay.filter(|target| !target.is_empty()),
             keepalive: document
                 .keepalive_secs
                 .filter(|secs| *secs > 0)
@@ -128,9 +132,25 @@ mod tests {
         assert!(matches!(&hops[1].credential, Credential::Password(p) if p.as_str() == "pw"));
         assert_eq!(config.route.session, "work");
         assert_eq!(config.route.keepalive, Some(Duration::from_secs(20)));
+        assert_eq!(config.route.relay, None);
         assert_eq!(config.options.surface_size.cols, 80);
         assert!(config.theme.dark);
         assert_eq!(config.theme.ansi[1].r, 0xff);
+    }
+
+    #[test]
+    fn a_saved_machine_is_relayed_through_the_last_hop() {
+        let document = |relay: &str| {
+            format!(
+                r#"{{"session":"agents","relay":{relay},"cols":1,"rows":1,"theme":{THEME},
+                   "hops":[{{"host":"a","port":22,"user":"u","auth":{{"type":"password","password":"p"}}}}]}}"#
+            )
+        };
+        let config = parse(&document(r#""ssh://me@b:2222""#)).unwrap();
+        assert_eq!(config.route.relay.as_deref(), Some("ssh://me@b:2222"));
+        assert_eq!(config.route.hops.len(), 1);
+        assert_eq!(parse(&document(r#""""#)).unwrap().route.relay, None);
+        assert_eq!(parse(&document("null")).unwrap().route.relay, None);
     }
 
     #[test]

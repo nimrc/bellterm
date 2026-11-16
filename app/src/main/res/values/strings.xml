@@ -110,6 +110,8 @@
     <string name="enter_password">Enter password</string>
     <string name="workspaces">Workspaces</string>
     <string name="agents">Agents</string>
+    <string name="machines">Machines</string>
+    <string name="machines_need_password">Save this host’s password to list the machines its Herdr saved.</string>
     <string name="new_workspace">New workspace</string>
     <string name="new_tab">New tab</string>
     <string name="tab_name">Name</string>

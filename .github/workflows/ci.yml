@@ -89,6 +89,56 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  # Issue #29: Herdr's own client switches to the machines its host saved with
+  # `herdr machine add`; Bellterm lists them and attaches through the host's
+  # ssh. Host and machine are two Herdr sessions behind one local sshd.
+  saved-machine:
+    name: Saved machine through its host
+    needs: android
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: live-ssh
+          path: live
+
+      - name: sshd, Herdr, and a saved machine
+        run: |
+          [ -x /usr/sbin/sshd ] || sudo apt-get install -y openssh-server > /dev/null
+          sudo mkdir -p /run/sshd
+          mkdir -p ~/.ssh ~/sshd && chmod 700 ~/.ssh
+          ssh-keygen -q -t ed25519 -N '' -f ~/sshd/host
+          ssh-keygen -q -t ed25519 -N '' -f ~/.ssh/id_ed25519
+          ssh-keygen -q -t ed25519 -N '' -f ~/bellterm-key
+          cat ~/.ssh/id_ed25519.pub ~/bellterm-key.pub >> ~/.ssh/authorized_keys
+          chmod 600 ~/.ssh/authorized_keys
+          printf '%s\n' 'Port 2222' 'ListenAddress 127.0.0.1' "HostKey $HOME/sshd/host" \
+            "PidFile $HOME/sshd/pid" 'UsePAM no' 'PasswordAuthentication no' 'StrictModes no' > ~/sshd/config
+          /usr/sbin/sshd -f ~/sshd/config -E ~/sshd/log
+          ssh-keyscan -p 2222 -t ed25519 127.0.0.1 >> ~/.ssh/known_hosts 2> /dev/null
+          curl -fsSL https://herdr.dev/install.sh | sh
+          export PATH="$HOME/.local/bin:$PATH"
+          herdr machine add "ssh://$(id -un)@127.0.0.1:2222" --remote-session machine --label b-machine < /dev/null
+          herdr --session machine workspace create --label on-b --no-focus
+          herdr machine list --json
+
+      - name: List the machine and attach through its host
+        run: |
+          export BELLTERM_LIVE_HOST=127.0.0.1 BELLTERM_LIVE_PORT=2222 BELLTERM_LIVE_USER="$(id -un)"
+          export BELLTERM_LIVE_KEY="$HOME/bellterm-key"
+          export BELLTERM_LIVE_MACHINE=b-machine BELLTERM_LIVE_MACHINE_WORKSPACE=on-b
+          chmod +x live/live_ssh
+          RUST_BACKTRACE=1 live/live_ssh --ignored --nocapture --exact attaches_to_a_saved_machine_through_its_host
+
+      - name: sshd and Herdr state
+        if: failure()
+        run: |
+          cat ~/sshd/log || true
+          PATH="$HOME/.local/bin:$PATH" herdr machine status --json || true
+
   # Issue #25: a Windows OpenSSH host runs cmd.exe or PowerShell, never
   # /bin/sh. A fresh admin user without Herdr goes through the app's flow:
   # install prompt, install over SSH, attach, update, attach.

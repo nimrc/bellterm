@@ -10,13 +10,17 @@ import org.json.JSONObject
 
 /**
  * Builds the route document `native/src/config.rs` reads: every jump host in
- * order, then the node, each with its pinned host key and credential. Private
+ * order, then the node, each with its pinned host key and credential. A saved
+ * machine is no SSH hop of ours: its jump host's `ssh` relays to it. Private
  * keys and saved passwords are decrypted from the keychain here and go
  * straight to the core; a password typed for this connection wins.
  */
 object Routes {
+    /** The nodes in [route] Bellterm itself signs in to. */
+    fun sshHops(route: List<Node>): List<Node> = if (route.lastOrNull()?.machine != null) route.dropLast(1) else route
+
     /** Nodes in [route] that sign in with a password. */
-    fun passwordHops(route: List<Node>): List<Node> = route.filter { it.auth == AuthMethod.Password }
+    fun passwordHops(route: List<Node>): List<Node> = sshHops(route).filter { it.auth == AuthMethod.Password }
 
     /** Password nodes in [route] with no saved password, which must be asked for. */
     fun unsavedPasswordHops(route: List<Node>, saved: (Node) -> Boolean): List<Node> =
@@ -32,7 +36,7 @@ object Routes {
     ): String {
         val target = route.last()
         val hops = JSONArray()
-        for (node in route) {
+        for (node in sshHops(route)) {
             val auth = when (node.auth) {
                 AuthMethod.Password -> JSONObject().put("type", "password").put("password", passwords[node.id] ?: keychain.password(node.id).orEmpty())
                 AuthMethod.Key -> JSONObject()
@@ -52,6 +56,7 @@ object Routes {
         return JSONObject()
             .put("session", target.session)
             .put("hops", hops)
+            .put("relay", target.machine)
             .put("keepalive_secs", target.keepAlive)
             .put("cols", grid[0])
             .put("rows", grid[1])

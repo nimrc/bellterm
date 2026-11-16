@@ -14,7 +14,7 @@
 use crate::{
     Error, Result, config, herdr_setup,
     input::Touch,
-    keys,
+    keys, machines,
     session::{self, Session},
     ssh_config,
     theme::Theme,
@@ -185,6 +185,23 @@ pub extern "system" fn Java_app_bellterm_core_Native_connect<'local>(
             .unwrap_or_else(PoisonError::into_inner)
             .insert(id, Arc::new(session));
         Ok(id)
+    })
+    .resolve::<ThrowIo>()
+}
+
+/// The enabled SSH machines Herdr on the route document's last host has
+/// saved, as a JSON array. Blocks for up to half a minute: never call it on
+/// the main thread.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_app_bellterm_core_Native_listMachines<'local>(
+    mut env: EnvUnowned<'local>,
+    _class: JClass<'local>,
+    config_json: JString<'local>,
+) -> JString<'local> {
+    env.with_env(|env| -> Result<_> {
+        let json = Zeroizing::new(string(env, &config_json)?);
+        let listed = machines::list(config::parse(&json)?.route)?;
+        Ok(env.new_string(serde_json::to_string(&listed)?)?)
     })
     .resolve::<ThrowIo>()
 }

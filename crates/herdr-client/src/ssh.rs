@@ -460,6 +460,23 @@ pub(super) fn command(target: &str, remote_command: &str) -> Command {
     command
 }
 
+/// `remote_command` as run on `target` by the `ssh` of the host this command
+/// line runs on: a `/bin/sh` command line with the bridge's connection
+/// policy, so that host's own OpenSSH configuration, keys, and known hosts
+/// decide whether `target` is reached.
+#[cfg(unix)]
+pub(crate) fn relay_command(target: &str, remote_command: &str) -> Result<String> {
+    validate_target(target)?;
+    let words = ["ssh"].into_iter().chain(POLICY).chain([
+        "-o",
+        "ClearAllForwardings=yes",
+        "--",
+        target,
+        remote_command,
+    ]);
+    Ok(words.map(quote).collect::<Vec<_>>().join(" "))
+}
+
 /// `ssh` with the bridge's connection policy and nothing to connect yet.
 #[cfg(unix)]
 fn noninteractive() -> Command {

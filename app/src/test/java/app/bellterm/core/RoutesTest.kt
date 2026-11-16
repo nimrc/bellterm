@@ -26,4 +26,21 @@ class RoutesTest {
     fun keyHopsAreNeverAskedFor() {
         assertEquals(emptyList<Node>(), Routes.unsavedPasswordHops(listOf(keyed)) { false })
     }
+
+    @Test
+    fun aSavedMachineIsNoHopOfOurs() {
+        val machine = Node(id = "machine", name = "b", address = "b", user = "u", auth = AuthMethod.Password, jumpId = "target", machine = "b")
+        val relayed = route + machine
+        assertEquals(route, Routes.sshHops(relayed))
+        assertEquals(route, Routes.sshHops(route))
+        assertEquals(listOf(jump, target), Routes.unsavedPasswordHops(relayed) { false })
+    }
+
+    @Test
+    fun aSavedMachineSurvivesStorage() {
+        val machine = Node(id = "machine", name = "b", address = "b", user = "u", jumpId = "target", machine = "ssh://me@b:2222", session = "agents")
+        assertEquals(machine, Node.fromJson(machine.toJson()))
+        assertEquals("ssh://me@b:2222", machine.destination)
+        assertEquals(null, Node.fromJson(target.toJson()).machine)
+    }
 }

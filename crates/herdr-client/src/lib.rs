@@ -60,7 +60,8 @@ pub use event::ClientEvent;
 pub use external_bridge::{answer_remote_bridge, remote_bridge_command};
 #[cfg(unix)]
 pub use external_bridge::{
-    answer_windows_bridge, powershell_command, windows_bridge_command, windows_probe_command,
+    answer_windows_bridge, powershell_command, relay_command, windows_bridge_command,
+    windows_probe_command,
 };
 pub use forward::{ForwardEvent, PortForward, preferred_local_port};
 pub use handle::{Client, ClientHandle};

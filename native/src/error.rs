@@ -38,8 +38,12 @@ pub enum Error {
     NoSession,
     #[error("not connected to a daemon yet")]
     NotReady,
+    #[error("Herdr on this host cannot list saved machines")]
+    NoMachineList,
     #[error("system random source failed: {0}")]
     Random(getrandom::Error),
+    #[error("{target} could not be reached from its jump host: {detail}")]
+    Relay { target: String, detail: String },
     #[error(transparent)]
     Ssh(#[from] russh::Error),
     #[error("SSH closed before the bridge started")]

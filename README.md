@@ -28,6 +28,15 @@ loader only supports from Android 10.
 - **Jump hosts.** A node can name another node as its jump host, which can have
   its own, as `ssh -J a,b host` does. Every hop's host key is checked and
   trusted separately; the trust prompt names the hop.
+- **Herdr's saved machines.** When Herdr on a host has saved SSH machines
+  with `herdr machine add`, the session drawer lists them under **Machines**
+  with the host itself, as Herdr's own sidebar does. Tapping one opens its
+  session, reached through the host: the host's own `ssh` signs in to the
+  machine with its keys, configuration, and known hosts, so the machine needs
+  nothing new from the phone. Each machine is saved as a node shown *via* its
+  host, removed along with the host. Running `herdr --remote` inside a pane
+  instead shows the other server only as that pane's terminal, since
+  Bellterm's workspaces are those of the server it attached to.
 - **Keys and certificates.** **Keys & certificates** (the lock icon) holds the
   device key generated on the phone, generated keys, and imported OpenSSH
   private keys (RSA, ECDSA, Ed25519; a passphrase is used once to decrypt).
@@ -311,6 +320,13 @@ Install Herdr button does, attaches, then runs the update path and attaches
 again. CI runs it against Windows OpenSSH on a `windows-2025` runner, once with
 `cmd.exe` and once with PowerShell as the default shell. The test binary is
 built on Linux and runs in WSL there, which shares the runner's localhost.
+
+`attaches_to_a_saved_machine_through_its_host` needs the host's Herdr to have
+saved a machine labelled `BELLTERM_LIVE_MACHINE`, whose session has a
+workspace labelled `BELLTERM_LIVE_MACHINE_WORKSPACE`: it lists the host's
+machines, attaches to that one through the host, and checks that an
+unreachable target reports the host's `ssh` error. CI runs it with the host
+and the machine as two Herdr sessions behind one local sshd.
 
 Set `BELLTERM_LIVE_JUMP_PORT` to reach the target through a jump host on the
 same address, and `BELLTERM_LIVE_CERT` to a certificate for the key to sign in

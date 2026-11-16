@@ -6,10 +6,14 @@
 //! README.md. Never point it at a daemon you care about: it types into the
 //! focused pane. `installs_herdr_then_attaches` instead needs a host without
 //! Herdr, POSIX or Windows OpenSSH, and installs it there.
+//! `attaches_to_a_saved_machine_through_its_host` needs the host's Herdr to
+//! have saved the machine `BELLTERM_LIVE_MACHINE` with `herdr machine add`,
+//! and that machine's session to have a workspace labelled
+//! `BELLTERM_LIVE_MACHINE_WORKSPACE`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use bellterm::{
-    herdr_setup,
+    herdr_setup, machines,
     session::{self, Config, Session, UiEvent},
     ssh::{Credential, Hop, Route},
     theme::Theme,
@@ -61,6 +65,7 @@ fn config(pinned: Option<String>, jump_pinned: Option<String>) -> Config {
     Config {
         route: Route {
             hops,
+            relay: None,
             session: env::var("BELLTERM_LIVE_SESSION").unwrap_or_else(|_| "default".into()),
             keepalive: Some(Duration::from_secs(15)),
         },
@@ -163,8 +168,9 @@ fn attaches_over_ssh_and_round_trips_input() {
 }
 
 /// Type a command into the focused pane and wait for its output. The newline
-/// is sent as an Enter key press, which every pane's shell takes.
-fn echo_round_trip(session: &Session, round: &str) {
+/// is sent as an Enter key press, which every pane's shell takes. Returns the
+/// shell view the attach began with.
+fn echo_round_trip(session: &Session, round: &str) -> serde_json::Value {
     wait(session, "snapshot", |e| matches!(e, UiEvent::Snapshot));
     let view: serde_json::Value = serde_json::from_str(&session.take_view().unwrap()).unwrap();
     assert!(!view["workspaces"].as_array().unwrap().is_empty());
@@ -190,6 +196,7 @@ fn echo_round_trip(session: &Session, round: &str) {
         assert!(Instant::now() < deadline, "marker never appeared:\n{text}");
         let _ = session.next_event(Duration::from_millis(200));
     }
+    view
 }
 
 /// The flow a user without Herdr goes through: the connection offers the
@@ -226,4 +233,61 @@ fn installs_herdr_then_attaches() {
         });
         echo_round_trip(&session, round);
     }
+}
+
+/// Herdr's own client switches to a machine its host saved; Bellterm lists
+/// those machines and attaches to one through the host's `ssh`. A target the
+/// host cannot reach reports what its `ssh` said.
+#[test]
+#[ignore = "needs a host whose Herdr saved a machine; see README.md"]
+fn attaches_to_a_saved_machine_through_its_host() {
+    let first = Session::connect(config(None, None)).unwrap();
+    let pin = match wait(&first, "host key prompt", |e| {
+        matches!(e, UiEvent::UntrustedHostKey { .. })
+    }) {
+        UiEvent::UntrustedHostKey { fingerprint, .. } => fingerprint,
+        _ => unreachable!(),
+    };
+
+    let label = var("BELLTERM_LIVE_MACHINE");
+    let listed = machines::list(config(Some(pin.clone()), None).route).unwrap();
+    eprintln!("machines: {listed:?}");
+    let machine = listed
+        .iter()
+        .find(|m| m.label == label)
+        .unwrap_or_else(|| panic!("{label} is not among {listed:?}"));
+
+    let relayed = |target: &str| {
+        let mut config = config(Some(pin.clone()), None);
+        config.route.relay = Some(target.to_owned());
+        config.route.session = machine.session.clone();
+        Session::connect(config).unwrap()
+    };
+    let session = relayed(&machine.target);
+    wait_for(&session, "connected", Duration::from_secs(90), |e| {
+        matches!(e, UiEvent::Connected { .. })
+    });
+    let view = echo_round_trip(&session, "machine");
+    let labels = view["workspaces"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|w| w["label"].as_str())
+        .collect::<Vec<_>>();
+    let expected = var("BELLTERM_LIVE_MACHINE_WORKSPACE");
+    assert!(
+        labels.contains(&expected.as_str()),
+        "{labels:?} lacks {expected}"
+    );
+
+    let unreachable = relayed("ssh://nobody@127.0.0.1:1");
+    let event = wait_for(&unreachable, "refusal", Duration::from_secs(60), |e| {
+        matches!(e, UiEvent::Disconnected { .. })
+    });
+    eprintln!("unreachable: {}", event.to_json());
+    assert!(
+        event.to_json().contains("could not be reached"),
+        "{}",
+        event.to_json()
+    );
 }

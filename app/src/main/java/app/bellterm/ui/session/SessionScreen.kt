@@ -100,6 +100,7 @@ import app.bellterm.BelltermApp
 import app.bellterm.R
 import app.bellterm.core.AgentStatus
 import app.bellterm.core.Connection
+import app.bellterm.core.Machine
 import app.bellterm.core.Native
 import app.bellterm.core.RenderFrame
 import app.bellterm.core.Tab
@@ -125,7 +126,9 @@ import app.bellterm.ui.theme.NodeColors
 import app.bellterm.ui.theme.TerminalSchemes
 import app.bellterm.ui.theme.color
 import io.github.suqi8.coui.kmp.blur.rememberLayerBackdrop
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** What a confirmation or text dialog is for. */
 internal sealed interface Prompt {
@@ -144,7 +147,15 @@ internal sealed interface Prompt {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, dark: Boolean, onLeave: () -> Unit) {
+fun SessionScreen(
+    app: BelltermApp,
+    connection: Connection,
+    focusPane: String?,
+    dark: Boolean,
+    onLeave: () -> Unit,
+    /** Opens another node's session, such as a machine from the drawer. */
+    onOpen: (Node) -> Unit,
+) {
     val context = LocalContext.current
     val settings by app.settings.settings.collectAsState()
     val fontChanges by app.fonts.changes.collectAsState()
@@ -185,6 +196,38 @@ fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, 
             askPasswords = needed
         }
     }
+
+    // The host whose Herdr saved this node's machine, or the node itself.
+    val savedNodes by app.nodes.nodes.collectAsState()
+    val host = if (node.machine != null) savedNodes.firstOrNull { it.id == node.jumpId } else node
+    var listed by remember(host?.id) { mutableStateOf<List<Machine>?>(null) }
+    LaunchedEffect(drawer.isOpen, host?.id) {
+        if (drawer.isOpen && host != null && listed == null) {
+            withContext(Dispatchers.IO) { app.machines(host) }.onSuccess { listed = it }
+        }
+    }
+    // Listed machines, then ones saved before that this listing lacks, so a
+    // host that cannot list them now still offers the way back.
+    val machineRows = host?.let { h ->
+        val saved = savedNodes.filter { it.machine != null && it.jumpId == h.id }
+            .map { Machine(it.title, it.machine.orEmpty(), it.session) }
+        val machines = (listed.orEmpty() + saved).distinctBy { it.target to it.session }
+        if (machines.isEmpty()) {
+            emptyList()
+        } else {
+            listOf(MachineRow(h.id, h.title, h.destination, h.session, h.color, current = node.id == h.id)) +
+                machines.map { m ->
+                    MachineRow(
+                        key = "${m.target} ${m.session}",
+                        label = m.label,
+                        target = m.target,
+                        session = m.session,
+                        color = h.color,
+                        current = node.machine == m.target && node.session == m.session,
+                    )
+                }
+        }
+    }.orEmpty()
 
     LaunchedEffect(scheme, state) { connection.setTheme(scheme.toJson().toString()) }
     LaunchedEffect(typefaces, terminal) { typefaces?.let { terminal?.setTypefaces(it) } }
@@ -240,6 +283,14 @@ fun SessionScreen(app: BelltermApp, connection: Connection, focusPane: String?, 
                 onNewWorkspace = { connection.newWorkspace(workspace?.id); scope.launch { drawer.close() } },
                 onRenameWorkspace = { prompt = Prompt.RenameWorkspace(it.id, it.label) },
                 onCloseWorkspace = { prompt = Prompt.CloseWorkspace(it.id, it.label) },
+                machines = machineRows,
+                onMachine = { row ->
+                    scope.launch { drawer.close() }
+                    val h = host ?: return@SessionDrawer
+                    if (!row.current) {
+                        onOpen(if (row.key == h.id) h else app.nodes.machine(h, row.label, row.target, row.session))
+                    }
+                },
             )
         },
     ) {

@@ -59,11 +59,11 @@ sh "$tmp" </dev/null"#,
 /// [`script`] for PowerShell: the `herdr.exe` the Windows probe finds first on
 /// `PATH` or in the installer's own location, or else `install.ps1`, run as
 /// herdr.dev documents it. Windows PowerShell 5.1 may default to TLS 1.0, and
-/// with stderr redirected it repeats `Write-Host` there as CLIXML, so the
-/// information stream is dropped; the host output keeps the text.
+/// with stderr redirected it writes `Write-Host` there as CLIXML, so the
+/// information stream joins stdout as plain text.
 pub fn windows_script() -> String {
     format!(
-        r#"$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; $herdr = Get-Command herdr.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source; if ($null -eq $herdr) {{ $herdrHome = if ([string]::IsNullOrWhiteSpace($env:HERDR_HOME)) {{ Join-Path $env:USERPROFILE '.herdr' }} else {{ $env:HERDR_HOME }}; $current = Join-Path $herdrHome 'packages\standalone\current\herdr.exe'; if (Test-Path -LiteralPath $current -PathType Leaf) {{ $herdr = $current }} }}; if ($null -ne $herdr) {{ [Console]::Out.WriteLine("Updating $herdr"); & $herdr update --handoff; exit $LASTEXITCODE }}; $url = '{WINDOWS_INSTALLER_URL}'; [Console]::Out.WriteLine("Installing Herdr from $url"); [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; Invoke-RestMethod -Uri $url | Invoke-Expression 6>$null; exit 0"#,
+        r#"$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; $herdr = Get-Command herdr.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source; if ($null -eq $herdr) {{ $herdrHome = if ([string]::IsNullOrWhiteSpace($env:HERDR_HOME)) {{ Join-Path $env:USERPROFILE '.herdr' }} else {{ $env:HERDR_HOME }}; $current = Join-Path $herdrHome 'packages\standalone\current\herdr.exe'; if (Test-Path -LiteralPath $current -PathType Leaf) {{ $herdr = $current }} }}; if ($null -ne $herdr) {{ [Console]::Out.WriteLine("Updating $herdr"); & $herdr update --handoff; exit $LASTEXITCODE }}; $url = '{WINDOWS_INSTALLER_URL}'; [Console]::Out.WriteLine("Installing Herdr from $url"); [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; Invoke-RestMethod -Uri $url | Invoke-Expression 6>&1; exit 0"#,
     )
 }
 

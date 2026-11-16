@@ -83,7 +83,7 @@ jobs:
           retention-days: 14
 
   # Issue #25: a Windows OpenSSH host runs cmd.exe or PowerShell, never
-  # /bin/sh. A fresh local user without Herdr goes through the app's flow:
+  # /bin/sh. A fresh admin user without Herdr goes through the app's flow:
   # install prompt, install over SSH, attach, update, attach.
   windows-host:
     name: Windows OpenSSH host (${{ matrix.shell }})
@@ -132,7 +132,9 @@ jobs:
           Write-Output "::add-mask::$password"
           $secure = ConvertTo-SecureString $password -AsPlainText -Force
           New-LocalUser -Name bellterm -Password $secure -PasswordNeverExpires | Out-Null
-          Add-LocalGroupMember -Group Users -Member bellterm
+          # Herdr starts its Windows server through WMI, which a non-admin
+          # SSH logon may not use (0x80041003).
+          Add-LocalGroupMember -Group Administrators -Member bellterm
           # Windows PowerShell's Out-File would write a BOM.
           [IO.File]::AppendAllText($env:GITHUB_ENV, "BELLTERM_LIVE_PASSWORD=$password`n")
 

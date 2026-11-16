@@ -36,6 +36,11 @@ import org.junit.runners.MethodSorters
  *     adb shell am instrument -w -e host 192.168.0.100 -e port 2200 -e user me \
  *         app.bellterm.test/androidx.test.runner.AndroidJUnitRunner
  *
+ * Add `-e machine <label>` when Herdr on that host saved a machine with
+ * `herdr machine add`, and `-e machine_workspace <label>` for a workspace
+ * only that machine's session has. `-e publish_key 1` writes the device's
+ * public key to e2e/device.pub for a host to trust.
+ *
  * Screenshots land in the app's external files, under e2e/.
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -64,6 +69,12 @@ class GlassUiTest {
                 app.nodes.delete(node)
             }
         }
+    }
+
+    @Test
+    fun t0_publishesDeviceKey() {
+        assumeTrue("not asked to publish the key", InstrumentationRegistry.getArguments().getString("publish_key") == "1")
+        File(shots, "device.pub").writeText(app.keychain.device(string(R.string.device_key_name)).publicKey + "\n")
     }
 
     @Test
@@ -167,32 +178,7 @@ class GlassUiTest {
         val args = InstrumentationRegistry.getArguments()
         val host = args.getString("host")
         assumeTrue("no host given; skipping the live connection", host != null)
-        val port = args.getString("port") ?: "22"
-        val user = args.getString("user") ?: "root"
-
-        need(By.res("add_node")).click()
-        type("field:name", HOST_NODE)
-        type("field:address", host!!)
-        type("field:user", user)
-        type("field:port", port)
-        assertTrue(waitEnabled(By.res("save")))
-        need(By.res("save")).click()
-        need(By.res("node:$HOST_NODE")).click()
-
-        val settled = device.wait(
-            Until.hasObject(By.res(Pattern.compile("session:state:Connected|session:state_card"))),
-            CONNECT_TIMEOUT,
-        )
-        assertTrue("connection settles", settled)
-        if (device.hasObject(By.res("session:state_card"))) {
-            shot("11_state_card")
-            // Only an unknown host key may be trusted here, and only the one the caller vouched for.
-            val expected = args.getString("fingerprint")
-            assumeTrue("host key prompt without an expected fingerprint", expected != null)
-            assertTrue(device.hasObject(By.textContains(expected!!)))
-            need(By.res("session:primary_action")).click()
-            need(By.res("session:state:Connected"), timeout = CONNECT_TIMEOUT)
-        }
+        connectHost(host!!)
         need(By.res("session:title"))
         need(By.res("session:tabs"))
         need(By.res("extra_keys"))
@@ -257,6 +243,74 @@ class GlassUiTest {
         deleteNode(HOST_NODE)
         assertTrue(device.wait(Until.gone(By.res("node:$HOST_NODE")), TIMEOUT))
         assertTrue("deleting the node disconnects it", waitFor { app.connections.value.isEmpty() })
+    }
+
+    @Test
+    fun t8_switchesToSavedMachine() {
+        val args = InstrumentationRegistry.getArguments()
+        val host = args.getString("host")
+        val machine = args.getString("machine")
+        assumeTrue("no host with a saved machine given; skipping", host != null && machine != null)
+        connectHost(host!!)
+
+        // The drawer lists the host, then the machines its Herdr saved.
+        need(By.res("session:drawer")).click()
+        need(By.res("session:drawer_sheet"))
+        need(By.res("machine:$machine"), "the saved machine in the drawer", CONNECT_TIMEOUT)
+        need(By.res("machine:$HOST_NODE"))
+        shot("19_drawer_machines")
+
+        // Its session is the machine's server, reached through the host.
+        need(By.res("machine:$machine")).click()
+        assertTrue(device.wait(Until.gone(By.res("session:drawer_sheet")), TIMEOUT))
+        need(By.res("session:state:Connected"), timeout = CONNECT_TIMEOUT)
+        need(By.res("session:drawer")).click()
+        need(By.res("session:drawer_sheet"))
+        need(By.text(machine!!))
+        args.getString("machine_workspace")?.let { need(By.res("workspace:$it"), "the machine's own workspace", CONNECT_TIMEOUT) }
+        shot("20_machine_drawer")
+
+        // And back to the host from the machine's drawer.
+        need(By.res("machine:$HOST_NODE")).click()
+        assertTrue(device.wait(Until.gone(By.res("session:drawer_sheet")), TIMEOUT))
+        need(By.res("session:state:Connected"), timeout = CONNECT_TIMEOUT)
+        device.pressBack()
+        need(By.res("node:$machine"))
+        need(By.text(string(R.string.via_jump, HOST_NODE)))
+        shot("21_home_machine_node")
+        deleteNode(HOST_NODE)
+        assertTrue("the host's machines go with it", device.wait(Until.gone(By.res("node:$machine")), TIMEOUT))
+    }
+
+    /** Adds [host] from the instrumentation arguments as a node, opens it, and trusts its key when vouched for. */
+    private fun connectHost(host: String) {
+        val args = InstrumentationRegistry.getArguments()
+        val port = args.getString("port") ?: "22"
+        val user = args.getString("user") ?: "root"
+
+        need(By.res("add_node")).click()
+        type("field:name", HOST_NODE)
+        type("field:address", host)
+        type("field:user", user)
+        type("field:port", port)
+        assertTrue(waitEnabled(By.res("save")))
+        need(By.res("save")).click()
+        need(By.res("node:$HOST_NODE")).click()
+
+        val settled = device.wait(
+            Until.hasObject(By.res(Pattern.compile("session:state:Connected|session:state_card"))),
+            CONNECT_TIMEOUT,
+        )
+        assertTrue("connection settles", settled)
+        if (device.hasObject(By.res("session:state_card"))) {
+            shot("11_state_card")
+            // Only an unknown host key may be trusted here, and only the one the caller vouched for.
+            val expected = args.getString("fingerprint")
+            assumeTrue("host key prompt without an expected fingerprint", expected != null)
+            assertTrue(device.hasObject(By.textContains(expected!!)))
+            need(By.res("session:primary_action")).click()
+            need(By.res("session:state:Connected"), timeout = CONNECT_TIMEOUT)
+        }
     }
 
     private fun deleteNode(name: String) {

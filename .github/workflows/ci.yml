@@ -73,7 +73,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: Unit tests and APKs
-        run: ./gradlew --console=plain testDebugUnitTest assembleDebug assembleRelease
+        run: ./gradlew --console=plain testDebugUnitTest assembleDebug assembleDebugAndroidTest assembleRelease
 
       # The release workflow builds this for Google Play; it must not check
       # dl.bellterm.app for updates.
@@ -85,7 +85,9 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bellterm-apks
-          path: app/build/outputs/apk/*/*.apk
+          path: |
+            app/build/outputs/apk/*/*.apk
+            app/build/outputs/apk/androidTest/debug/*.apk
           if-no-files-found: error
           retention-days: 14
 
@@ -96,7 +98,7 @@ jobs:
     name: Saved machine through its host
     needs: android
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 45
     permissions:
       contents: read
     steps:
@@ -104,6 +106,11 @@ jobs:
         with:
           name: live-ssh
           path: live
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bellterm-apks
+          path: apks
 
       - name: sshd, Herdr, and a saved machine
         run: |
@@ -124,6 +131,10 @@ jobs:
           herdr machine add "ssh://$(id -un)@127.0.0.1:2222" --remote-session machine --label b-machine < /dev/null
           herdr --session machine workspace create --label on-b --no-focus
           herdr machine list --json
+          # The host's own session, which the app attaches to first.
+          nohup herdr server > ~/herdr-host.log 2>&1 &
+          for _ in $(seq 30); do herdr status server --json | grep -q '"running":true' && break; sleep 1; done
+          echo "FINGERPRINT=$(ssh-keygen -lf ~/sshd/host.pub | awk '{print $2}')" >> "$GITHUB_ENV"
 
       - name: List the machine and attach through its host
         run: |
@@ -133,10 +144,53 @@ jobs:
           chmod +x live/live_ssh
           RUST_BACKTRACE=1 live/live_ssh --ignored --nocapture --exact attaches_to_a_saved_machine_through_its_host
 
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # The app itself on an emulator, which reaches the runner's sshd as
+      # 10.0.2.2: the drawer lists the machine, and switching to it attaches.
+      - name: Emulator script
+        run: |
+          cat > "$RUNNER_TEMP/emulator.sh" <<'SCRIPT'
+          set -u
+          trap 'adb pull /sdcard/Android/data/app.bellterm/files/e2e "$RUNNER_TEMP/screens" > /dev/null' EXIT
+          adb install -r -g apks/debug/app-debug.apk
+          adb install -r -g apks/androidTest/debug/app-debug-androidTest.apk
+          instrument() {
+            adb shell am instrument -w -r "$@" app.bellterm.test/androidx.test.runner.AndroidJUnitRunner \
+              | tee /dev/stderr | grep -q '^OK ('
+          }
+          test=app.bellterm.e2e.GlassUiTest
+          instrument -e publish_key 1 -e class "$test#t0_publishesDeviceKey" || exit 1
+          adb shell cat /sdcard/Android/data/app.bellterm/files/e2e/device.pub >> ~/.ssh/authorized_keys
+          instrument -e host 10.0.2.2 -e port 2222 -e user "$(id -un)" -e fingerprint "$FINGERPRINT" \
+            -e machine b-machine -e machine_workspace on-b -e class "$test#t8_switchesToSavedMachine"
+          SCRIPT
+
+      - uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash "$RUNNER_TEMP/emulator.sh"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: saved-machine-screens
+          path: ${{ runner.temp }}/screens
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: sshd and Herdr state
         if: failure()
         run: |
           cat ~/sshd/log || true
+          cat ~/herdr-host.log || true
           PATH="$HOME/.local/bin:$PATH" herdr machine status --json || true
 
   # Issue #25: a Windows OpenSSH host runs cmd.exe or PowerShell, never

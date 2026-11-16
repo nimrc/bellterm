@@ -159,9 +159,12 @@ jobs:
           trap 'adb pull /sdcard/Android/data/app.bellterm/files/e2e "$RUNNER_TEMP/screens" > /dev/null' EXIT
           adb install -r -g apks/debug/app-debug.apk
           adb install -r -g apks/androidTest/debug/app-debug-androidTest.apk
+          # am instrument exits 0 on failures, and a skipped test (code -4) still
+          # reads OK, so both are checked in its output.
           instrument() {
-            adb shell am instrument -w -r "$@" app.bellterm.test/androidx.test.runner.AndroidJUnitRunner \
-              | tee /dev/stderr | grep -q '^OK ('
+            adb shell am instrument -w -r "$@" app.bellterm.test/androidx.test.runner.AndroidJUnitRunner > "$RUNNER_TEMP/instrument.log"
+            cat "$RUNNER_TEMP/instrument.log"
+            grep -q '^OK (' "$RUNNER_TEMP/instrument.log" && ! grep -q 'INSTRUMENTATION_STATUS_CODE: -4' "$RUNNER_TEMP/instrument.log"
           }
           test=app.bellterm.e2e.GlassUiTest
           instrument -e publish_key 1 -e class "$test#t0_publishesDeviceKey" || exit 1

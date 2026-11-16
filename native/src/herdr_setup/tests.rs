@@ -114,7 +114,7 @@ fn windows_updates_an_installed_herdr_or_runs_install_ps1() {
     assert!(script.contains("& $herdr update --handoff; exit $LASTEXITCODE"));
     assert!(script.contains(r"'packages\standalone\current\herdr.exe'"));
     assert!(script.contains("$url = 'https://herdr.dev/install.ps1'"));
-    assert!(script.contains("Invoke-RestMethod -Uri $url | Invoke-Expression"));
+    assert!(script.contains("Invoke-RestMethod -Uri $url | Invoke-Expression 6>$null"));
     // cmd.exe caps a command line at 8191 characters.
     assert!(powershell_command(&script).len() < 8191);
 }

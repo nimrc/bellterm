@@ -107,6 +107,7 @@ jobs:
         with:
           distribution: Ubuntu-24.04
           wsl-version: 1
+          additional-packages: sshpass openssh-client
 
       - name: OpenSSH Server and a user without Herdr
         shell: powershell
@@ -145,6 +146,22 @@ jobs:
         run: |
           chmod +x live/live_ssh
           RUST_BACKTRACE=1 live/live_ssh --ignored --nocapture --exact installs_herdr_then_attaches
+
+      - name: Herdr on the host
+        if: failure()
+        shell: wsl-bash {0}
+        env:
+          SSHPASS: ${{ env.BELLTERM_LIVE_PASSWORD }}
+          WSLENV: SSHPASS
+        run: |
+          on_host() { sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null bellterm@127.0.0.1 "$1" || true; }
+          for command in 'where.exe herdr.exe' 'herdr.exe --version' 'herdr.exe status client --json' 'herdr.exe --session default status server --json'; do
+            echo "== $command"; on_host "$command"
+          done
+          on_host 'powershell -NoProfile -Command "Get-ChildItem -Recurse -Force $env:USERPROFILE\.herdr, $env:LOCALAPPDATA\herdr -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName"'
+          on_host 'powershell -NoProfile -Command "Get-ChildItem -Recurse -Force -Include *.log $env:USERPROFILE\.herdr, $env:LOCALAPPDATA\herdr, $env:APPDATA\herdr -ErrorAction SilentlyContinue | ForEach-Object { \"== $_\"; Get-Content -Tail 80 $_ }"'
+          echo '== bridge by hand'
+          timeout 20 sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null bellterm@127.0.0.1 'herdr.exe --session default remote-client-bridge' </dev/null | head -c 2000 | od -c | head -20 || true
 
       - name: sshd log
         if: failure()

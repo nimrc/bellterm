@@ -17,7 +17,7 @@
     <string name="incompatible_daemon_text">Herdr on this host is %1$s; Bellterm needs %2$s or later.\n\nUpdate Herdr runs herdr update --handoff on the host, which hands running sessions to the new version. Or run it there yourself, then tap Reconnect.</string>
     <string name="update_herdr">Update Herdr</string>
     <string name="herdr_missing_title">No Herdr on the host</string>
-    <string name="herdr_missing_text">No Herdr that Bellterm can use answered on this host.\n\nInstall Herdr downloads Herdr’s installer from herdr.dev/install.sh and runs it on the host, which puts herdr in ~/.local/bin. If a Herdr is already there but too old to answer, it is updated instead.</string>
+    <string name="herdr_missing_text">No Herdr that Bellterm can use answered on this host.\n\nInstall Herdr downloads Herdr’s installer from herdr.dev/install.sh and runs it on the host, which puts herdr in ~/.local/bin; a Windows host gets herdr.dev/install.ps1 through PowerShell instead. If a Herdr is already there but too old to answer, it is updated instead.</string>
     <string name="install_herdr">Install Herdr</string>
     <string name="herdr_setup_running_title">Installing or updating Herdr</string>
     <string name="herdr_setup_running_text">Running Herdr’s installer or updater on the host. This can take a few minutes.</string>

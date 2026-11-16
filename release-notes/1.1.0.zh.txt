@@ -1,0 +1,2 @@
+支持通过 OpenSSH 连接 Windows 主机，默认 shell 为 cmd.exe 或 PowerShell 均可。
+主机未安装 Herdr 或版本过旧时，可直接在应用中点按“安装 Herdr”或“更新 Herdr”。

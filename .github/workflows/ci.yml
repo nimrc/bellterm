@@ -170,7 +170,7 @@ jobs:
           instrument -e publish_key 1 -e class "$test#t0_publishesDeviceKey" || exit 1
           adb shell cat /sdcard/Android/data/app.bellterm/files/e2e/device.pub >> ~/.ssh/authorized_keys
           instrument -e host 10.0.2.2 -e port 2222 -e user "$(id -un)" -e fingerprint "$FINGERPRINT" \
-            -e machine b-machine -e machine_workspace on-b -e class "$test#t8_switchesToSavedMachine"
+            -e machine b-machine -e machine_workspace on-b -e class "$test#t8_switchesToSavedMachine,$test#t9_changelogListsReleases"
           SCRIPT
 
       - uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0

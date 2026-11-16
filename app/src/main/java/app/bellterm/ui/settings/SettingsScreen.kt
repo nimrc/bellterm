@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -59,6 +61,7 @@ import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -71,6 +74,7 @@ import app.bellterm.BelltermApp
 import app.bellterm.R
 import app.bellterm.data.AppLanguage
 import app.bellterm.data.AppLanguages
+import app.bellterm.data.ReleaseNotes
 import app.bellterm.data.ThemeMode
 import app.bellterm.data.UpdateState
 import app.bellterm.ui.components.Group
@@ -103,6 +107,7 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
     val snackbar = remember { SnackbarHostState() }
     val progress = remember { mutableStateMapOf<String, Float>() }
     var licenses by remember { mutableStateOf(false) }
+    var changelog by remember { mutableStateOf(false) }
     val update by app.updates.state.collectAsState()
     val download = rememberOpenDownload()
     val fontPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -264,6 +269,13 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
                     }
                     GlassDivider()
                     ItemRow(
+                        title = stringResource(R.string.changelog),
+                        leading = { IconBadge(Icons.Default.Star, Color(0xFFE0A030)) },
+                        onClick = { changelog = true },
+                        chevron = true,
+                    )
+                    GlassDivider()
+                    ItemRow(
                         title = stringResource(R.string.licenses),
                         leading = { IconBadge(Icons.AutoMirrored.Filled.List, Color(0xFF8A8F98)) },
                         onClick = { licenses = true },
@@ -272,6 +284,39 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
                 }
             }
         }
+    }
+
+    if (changelog) {
+        val chinese = context.resources.configuration.locales[0].language == "zh"
+        val releases = remember(chinese) { ReleaseNotes.load(context, if (chinese) "zh" else "en") }
+        val installed = remember { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
+        val uris = LocalUriHandler.current
+        GlassAlertDialog(
+            onDismissRequest = { changelog = false },
+            title = { Text(stringResource(R.string.changelog)) },
+            text = {
+                LazyColumn(Modifier.testTag("changelog"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    items(releases, key = { it.version }) { release ->
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                if (release.version == installed) stringResource(R.string.changelog_installed, release.version) else release.version,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            release.notes.forEach { note ->
+                                Text("•  $note", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { changelog = false }) { Text(stringResource(android.R.string.ok)) } },
+            dismissButton = {
+                TextButton(onClick = { uris.openUri(if (chinese) CHANGELOG_ZH else CHANGELOG_EN) }) {
+                    Text(stringResource(R.string.changelog_website))
+                }
+            },
+        )
     }
 
     if (licenses) {
@@ -426,3 +471,6 @@ private fun LanguagePicker() {
         )
     }
 }
+
+private const val CHANGELOG_EN = "https://bellterm.app/changelog/"
+private const val CHANGELOG_ZH = "https://bellterm.app/zh/changelog/"

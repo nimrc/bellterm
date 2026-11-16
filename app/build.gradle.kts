@@ -64,6 +64,7 @@ android {
     }
     sourceSets["main"].jniLibs.directories.add(layout.buildDirectory.dir("rustJniLibs").get().asFile.path)
     sourceSets["main"].assets.directories.add(layout.buildDirectory.dir("legalAssets").get().asFile.path)
+    sourceSets["main"].assets.directories.add(layout.buildDirectory.dir("releaseNotesAssets").get().asFile.path)
     packaging {
         jniLibs.useLegacyPackaging = false
     }
@@ -108,7 +109,13 @@ val legalAssets = tasks.register<Copy>("legalAssets") {
     from(root.file("crates/herdr-protocol/NOTICE.md")) { rename { "herdr-protocol-NOTICE.md" } }
     into(layout.buildDirectory.dir("legalAssets/licenses"))
 }
-tasks.named("preBuild") { dependsOn(buildRust, legalAssets) }
+// release-notes/ feeds the update manifest, GitHub releases, and the in-app
+// changelog alike, so the app ships the same files.
+val releaseNotesAssets = tasks.register<Copy>("releaseNotesAssets") {
+    from(rootProject.layout.projectDirectory.dir("release-notes")) { include("*.txt") }
+    into(layout.buildDirectory.dir("releaseNotesAssets/release-notes"))
+}
+tasks.named("preBuild") { dependsOn(buildRust, legalAssets, releaseNotesAssets) }
 
 kotlin {
     compilerOptions {

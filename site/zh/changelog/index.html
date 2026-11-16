@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>更新日志 — Bellterm</title>
+<meta name="description" content="Bellterm 每个版本的更新内容。">
+<meta name="theme-color" content="#f5f5f7">
+<link rel="canonical" href="https://bellterm.app/zh/changelog/">
+<link rel="alternate" hreflang="en" href="https://bellterm.app/changelog/">
+<link rel="alternate" hreflang="zh-CN" href="https://bellterm.app/zh/changelog/">
+<link rel="alternate" hreflang="x-default" href="https://bellterm.app/changelog/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bellterm">
+<meta property="og:title" content="更新日志 — Bellterm">
+<meta property="og:description" content="Bellterm 每个版本的更新内容。">
+<meta property="og:url" content="https://bellterm.app/zh/changelog/">
+<meta property="og:image" content="https://bellterm.app/og-zh.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/zh/"><img src="/icon.svg" alt="">Bellterm</a>
+  <nav aria-label="主导航">
+    <a href="/zh/">首页</a>
+    <a href="https://github.com/nimrc/bellterm">GitHub</a>
+    <a href="/changelog/" hreflang="en" lang="en">English</a>
+  </nav>
+</header>
+
+<main class="wrap doc">
+  <h1>更新日志</h1>
+  <p class="meta">Android 版本，最新的在前。Android 应用会自动提示新版本；TestFlight 上的 iOS 测试版会在之后的构建中带上同样的改动。</p>
+
+  <h2 id="1.1.1">1.1.1</h2>
+  <p class="meta"><time datetime="2026-11-16">2026 年 11 月 16 日</time> · Android · <a href="https://github.com/nimrc/bellterm/releases/tag/v1.1.1">GitHub 上的发布</a></p>
+  <ul>
+    <li><strong>Herdr 保存的机器。</strong>主机上的 Herdr 用 <code>herdr machine add</code> 保存过 SSH 机器时，会话抽屉会在“机器”里列出它们，主机排在最前，和 Herdr 自己的侧边栏一样。点按一台即可打开它的工作区。</li>
+    <li>Bellterm 经由主机连接这些机器：用的是主机自己的 SSH 密钥、配置和 known_hosts，机器不需要再信任手机的密钥。</li>
+    <li>打开过的机器会留在节点列表里，标为“经”某台主机，删除主机时一起删除。</li>
+    <li>主机连不上某台机器时，Bellterm 会显示主机上 SSH 给出的错误。</li>
+  </ul>
+
+  <h2 id="1.1.0">1.1.0</h2>
+  <p class="meta"><time datetime="2026-11-16">2026 年 11 月 16 日</time> · Android · <a href="https://github.com/nimrc/bellterm/releases/tag/v1.1.0">GitHub 上的发布</a></p>
+  <ul>
+    <li><strong>Windows 主机。</strong>支持通过 OpenSSH 连接 Windows 机器，默认 shell 为 <code>cmd.exe</code> 或 PowerShell 均可。</li>
+    <li><strong>在应用中安装或更新 Herdr。</strong>主机上没有 Herdr，或版本太旧时，点按“安装 Herdr”或“更新 Herdr”。Bellterm 会运行 Herdr 自己的 <code>herdr update --handoff</code>，把正在运行的会话交接给新版本；或者运行它的安装脚本：<code>install.sh</code>，Windows 上是 <code>install.ps1</code>。</li>
+  </ul>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Bellterm 可以配合 Herdr 使用，但与 Herdr 或 herdr.dev 没有任何隶属、背书或支持关系。</p>
+    <p>以 Apache License 2.0 发布，<a href="https://github.com/nimrc/bellterm">源码在 GitHub</a>。<a href="/zh/changelog/">更新日志</a> · <a href="/zh/support/">支持</a> · <a href="/zh/privacy/">隐私</a> · <a href="/changelog/" hreflang="en" lang="en">English</a></p>
+  </div>
+</footer>
+</body>
+</html>

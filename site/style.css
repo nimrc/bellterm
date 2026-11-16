@@ -232,6 +232,7 @@ footer p { max-width: 48rem; }
 .doc { max-width: 46rem; padding-block: 4rem 5rem; }
 .doc h1 { font-size: clamp(2.25rem, 4.4vw, 3.25rem); letter-spacing: -.05em; margin: 0 0 1rem; }
 .doc .meta { color: var(--muted); font-size: .9rem; margin: 0 0 3rem; }
+.doc h2 + .meta { margin: -.25rem 0 1rem; }
 .doc h2 { font: 650 1.5rem/1.25 var(--display); letter-spacing: -.03em; margin: 3rem 0 .75rem; max-width: none; }
 .doc h3 { font-size: 1.05rem; margin: 1.75rem 0 .5rem; }
 .doc p, .doc li { color: #35353a; }

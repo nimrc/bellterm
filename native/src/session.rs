@@ -125,7 +125,11 @@ fn connector_refusal(error: &Error) -> Option<UiEvent> {
             hop: *hop,
             host: host.clone(),
         }),
-        Error::Client(herdr_client::Error::SshClosed) => Some(UiEvent::HerdrMissing),
+        // A POSIX host without Herdr closes the bridge; a Windows probe says so.
+        Error::Client(
+            herdr_client::Error::SshClosed
+            | herdr_client::Error::SshRefused(herdr_client::SshFailure::HerdrMissing),
+        ) => Some(UiEvent::HerdrMissing),
         _ => None,
     }
 }

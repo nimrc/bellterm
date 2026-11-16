@@ -10,7 +10,8 @@ on the host owns terminals and session state; disconnecting the app must leave
 them running. The app never starts or stops Herdr. It installs or updates Herdr
 only when the user taps Install/Update Herdr after a connection found none or
 an outdated one, and then only through Herdr's own `herdr update --handoff` or
-its installer at `https://herdr.dev/install.sh` (`native/src/herdr_setup.rs`).
+its installer at `https://herdr.dev/install.sh` (`install.ps1` on Windows
+OpenSSH hosts; `native/src/herdr_setup.rs`).
 
 | Location | Responsibility |
 | --- | --- |

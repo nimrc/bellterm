@@ -109,13 +109,15 @@ each hop shows the host key's SHA-256 fingerprint for you to compare with
 `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on that host before trusting
 it.
 
-The host that runs Herdr needs `/bin/sh` and Herdr 0.9.0 or later in one of the
-usual install locations (for example `~/.local/bin/herdr`). When a connection
+The host that runs Herdr needs `/bin/sh`, or PowerShell on a Windows OpenSSH
+host, and Herdr 0.9.0 or later in one of the usual install locations (for
+example `~/.local/bin/herdr`, or `herdr.exe` on `PATH` on Windows). When a connection
 finds Herdr missing or older than that, the session offers **Install Herdr** or
 **Update Herdr**: on your tap, Bellterm runs `herdr update --handoff` with the
 Herdr it found, which hands running sessions to the new version, or downloads
 Herdr's installer from `https://herdr.dev/install.sh` and runs it, which puts
-`herdr` in `~/.local/bin`. The installer needs `curl` or `wget` on the host.
+`herdr` in `~/.local/bin`. The installer needs `curl` or `wget` on the host. A
+Windows host gets `https://herdr.dev/install.ps1` through PowerShell instead.
 Nothing else is installed, and nothing is started or stopped: if no Herdr
 server is running for the session, start one there with `herdr`. Jump hosts
 need only SSH with TCP forwarding allowed.
@@ -271,8 +273,18 @@ cd native
 cargo run --example keygen -- /tmp/bellterm-key   # prints the public key
 BELLTERM_LIVE_HOST=127.0.0.1 BELLTERM_LIVE_PORT=2222 \
 BELLTERM_LIVE_USER=$USER BELLTERM_LIVE_KEY=/tmp/bellterm-key \
-  cargo test --test live_ssh -- --ignored --nocapture
+  cargo test --test live_ssh -- --ignored --nocapture attaches_over_ssh
 ```
+
+Set `BELLTERM_LIVE_PASSWORD` instead of `BELLTERM_LIVE_KEY` to sign in with a
+password.
+
+`installs_herdr_then_attaches` in the same file needs a host without Herdr:
+it waits for the install prompt, installs Herdr the way the app's
+Install Herdr button does, attaches, then runs the update path and attaches
+again. CI runs it against Windows OpenSSH on a `windows-2025` runner, once with
+`cmd.exe` and once with PowerShell as the default shell. The test binary is
+built on Linux and runs in WSL there, which shares the runner's localhost.
 
 Set `BELLTERM_LIVE_JUMP_PORT` to reach the target through a jump host on the
 same address, and `BELLTERM_LIVE_CERT` to a certificate for the key to sign in
@@ -282,7 +294,6 @@ with it (point the target's `TrustedUserCAKeys` at the CA and its
 ## Limitations
 
 - Inline images (Kitty graphics, Sixel) are not drawn yet.
-- Hosts that only offer PowerShell (Windows OpenSSH) are not supported.
 - Generated keys are Ed25519; RSA and ECDSA keys can be imported but not
   generated. FIDO/security-key (`sk-`) keys and SSH agents are not supported.
 - `Match` and `Include` in imported SSH configuration are not evaluated.

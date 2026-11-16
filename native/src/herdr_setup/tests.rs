@@ -107,3 +107,14 @@ fn the_outcome_reaches_the_ui_as_json() {
     let json: serde_json::Value = serde_json::from_str(&unknown.to_json()).unwrap();
     assert!(json["exit_status"].is_null());
 }
+
+#[test]
+fn windows_updates_an_installed_herdr_or_runs_install_ps1() {
+    let script = windows_script();
+    assert!(script.contains("& $herdr update --handoff; exit $LASTEXITCODE"));
+    assert!(script.contains(r"'packages\standalone\current\herdr.exe'"));
+    assert!(script.contains("$url = 'https://herdr.dev/install.ps1'"));
+    assert!(script.contains("Invoke-RestMethod -Uri $url | Invoke-Expression"));
+    // cmd.exe caps a command line at 8191 characters.
+    assert!(powershell_command(&script).len() < 8191);
+}

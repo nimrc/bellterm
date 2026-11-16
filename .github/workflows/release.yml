@@ -2,7 +2,9 @@ name: Release
 
 # Builds the signed release APK and the update manifest, attaches both to a
 # GitHub release, and publishes them to https://dl.bellterm.app/ (the R2 bucket
-# below), where the app's update check reads latest.json.
+# below), where the app's update check reads latest.json. The Google Play
+# bundle is attached too, and uploaded to Play's internal testing track when
+# PLAY_SERVICE_ACCOUNT_JSON is set.
 #
 # Two ways in:
 # - Run the workflow from the Actions tab with a version such as 1.2.0 to cut
@@ -118,6 +120,9 @@ jobs:
           export BELLTERM_KEYSTORE="$RUNNER_TEMP/release.jks"
           printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$BELLTERM_KEYSTORE"
           ./gradlew --console=plain assembleRelease
+          # Play's bundle, signed with the same key as its upload key; without
+          # the in-app update check, which Play does not allow.
+          ./gradlew --console=plain -Pbellterm.play=true bundleRelease
           rm -f "$BELLTERM_KEYSTORE"
 
       # The script refuses an APK signed with the debug key.
@@ -126,6 +131,7 @@ jobs:
           notes() { [ -f "release-notes/$VERSION.$1.txt" ] && echo "release-notes/$VERSION.$1.txt" || echo ""; }
           scripts/release-manifest.sh app/build/outputs/apk/release/app-release.apk dist "$(notes en)" "$(notes zh)"
           cat dist/latest.json
+          cp app/build/outputs/bundle/release/app-release.aab "dist/bellterm-$VERSION-play.aab"
 
       # Only now, with the APK built, does a cut push its commit and tag. The
       # token is passed here alone, so build scripts never see it.
@@ -161,3 +167,31 @@ jobs:
           put "bellterm-$VERSION.apk" "dist/bellterm-$VERSION.apk" "$apk" "public, max-age=31536000, immutable"
           put bellterm.apk "dist/bellterm-$VERSION.apk" "$apk" "public, max-age=300"
           put latest.json dist/latest.json application/json "public, max-age=300"
+
+      # Internal testing only, once PLAY_SERVICE_ACCOUNT_JSON is set: Play
+      # takes uploads through its API only after the app's first release was
+      # uploaded by hand in Play Console. See README.md.
+      - name: Release notes for Play
+        id: play
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          [ -n "$PLAY_SERVICE_ACCOUNT_JSON" ] || { echo "No PLAY_SERVICE_ACCOUNT_JSON; skipping Google Play."; exit 0; }
+          mkdir -p "$RUNNER_TEMP/whatsnew"
+          for pair in en:en-US zh:zh-CN; do
+            note="release-notes/$VERSION.${pair%%:*}.txt"
+            [ -f "$note" ] && head -c 500 "$note" > "$RUNNER_TEMP/whatsnew/whatsnew-${pair#*:}"
+          done
+          echo "upload=true" >> "$GITHUB_OUTPUT"
+
+      - uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        if: steps.play.outputs.upload == 'true'
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: app.bellterm
+          releaseFiles: dist/bellterm-${{ env.VERSION }}-play.aab
+          track: internal
+          status: completed
+          whatsNewDirectory: ${{ runner.temp }}/whatsnew
+          mappingFile: app/build/outputs/mapping/release/mapping.txt
+

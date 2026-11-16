@@ -75,6 +75,13 @@ jobs:
       - name: Unit tests and APKs
         run: ./gradlew --console=plain testDebugUnitTest assembleDebug assembleRelease
 
+      # The release workflow builds this for Google Play; it must not check
+      # dl.bellterm.app for updates.
+      - name: Play bundle
+        run: |
+          ./gradlew --console=plain -Pbellterm.play=true bundleRelease
+          grep -q 'UPDATE_CHECK = false' app/build/generated/source/buildConfig/release/app/bellterm/BuildConfig.java
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bellterm-apks

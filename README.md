@@ -250,6 +250,32 @@ build and upload.
 
 To do it locally instead, build with the release key and run
 `scripts/release-manifest.sh app/build/outputs/apk/release/app-release.apk dist`.
+
+### Google Play
+
+Every release also builds `bellterm-<version>-play.aab` with
+`-Pbellterm.play=true`, which leaves out the in-app update check that Play's
+policy forbids, and attaches it to the GitHub release. Bellterm is not on Play
+yet. These steps happen once, in Play Console, by the account owner:
+
+1. Create the app with package `app.bellterm`, free. Complete the store
+   listing, the privacy policy (`https://bellterm.app/privacy/`), data safety,
+   content rating, and target audience, and declare the `specialUse`
+   foreground service: it keeps the SSH connection to the user's Herdr daemon
+   open while agents run.
+2. Under App signing, upload the existing release key (Play's PEPK tool) rather
+   than letting Google generate one, so a Play install and the APK from
+   dl.bellterm.app can update each other. The same key is then the upload key.
+3. Upload the first bundle by hand to internal testing; Play's API accepts an
+   app's uploads only after that.
+4. In Google Cloud, enable the Google Play Android Developer API, create a
+   service account with a JSON key, and invite it in Play Console under Users
+   and permissions with release rights for Bellterm. Store the key as the
+   repository secret `PLAY_SERVICE_ACCOUNT_JSON`.
+
+From then on the Release workflow uploads each bundle to the internal testing
+track, with the release notes in English and Chinese. Promote it to closed
+testing or production in Play Console.
 The script refuses an APK signed with the debug key.
 
 ### Website

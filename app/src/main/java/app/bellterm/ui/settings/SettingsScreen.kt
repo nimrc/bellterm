@@ -235,31 +235,33 @@ fun SettingsScreen(app: BelltermApp, onBack: () -> Unit) {
                         leading = { IconBadge(Icons.Default.Info, Color(0xFF2F9E9A)) },
                         detail = stringResource(R.string.about_text, context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""),
                     )
-                    GlassDivider()
-                    ItemRow(
-                        title = stringResource(R.string.check_updates),
-                        leading = { IconBadge(Icons.Default.Refresh, Color(0xFF3FB868)) },
-                        detail = when (val state = update) {
-                            UpdateState.Idle -> null
-                            UpdateState.Checking -> stringResource(R.string.update_checking)
-                            UpdateState.UpToDate -> stringResource(R.string.update_up_to_date)
-                            UpdateState.Failed -> stringResource(R.string.update_failed)
-                            is UpdateState.Available -> stringResource(R.string.update_available_detail, state.info.versionName)
-                        },
-                        onClick = {
-                            when (val state = update) {
-                                is UpdateState.Available -> download(state.info)
-                                UpdateState.Checking -> Unit
-                                // The app's scope, so leaving the screen does not cancel the check midway.
-                                else -> app.scope.launch { app.updates.check(force = true) }
-                            }
-                        },
-                        trailing = if (update == UpdateState.Checking) {
-                            { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) }
-                        } else {
-                            null
-                        },
-                    )
+                    if (app.updates.enabled) {
+                        GlassDivider()
+                        ItemRow(
+                            title = stringResource(R.string.check_updates),
+                            leading = { IconBadge(Icons.Default.Refresh, Color(0xFF3FB868)) },
+                            detail = when (val state = update) {
+                                UpdateState.Idle -> null
+                                UpdateState.Checking -> stringResource(R.string.update_checking)
+                                UpdateState.UpToDate -> stringResource(R.string.update_up_to_date)
+                                UpdateState.Failed -> stringResource(R.string.update_failed)
+                                is UpdateState.Available -> stringResource(R.string.update_available_detail, state.info.versionName)
+                            },
+                            onClick = {
+                                when (val state = update) {
+                                    is UpdateState.Available -> download(state.info)
+                                    UpdateState.Checking -> Unit
+                                    // The app's scope, so leaving the screen does not cancel the check midway.
+                                    else -> app.scope.launch { app.updates.check(force = true) }
+                                }
+                            },
+                            trailing = if (update == UpdateState.Checking) {
+                                { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) }
+                            } else {
+                                null
+                            },
+                        )
+                    }
                     GlassDivider()
                     ItemRow(
                         title = stringResource(R.string.licenses),

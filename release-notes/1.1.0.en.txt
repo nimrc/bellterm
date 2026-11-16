@@ -1,0 +1,2 @@
+Connect to Windows hosts over OpenSSH, whether their shell is cmd.exe or PowerShell.
+When a host has no Herdr or an outdated one, tap Install Herdr or Update Herdr to set it up from the app.

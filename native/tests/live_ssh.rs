@@ -162,8 +162,8 @@ fn attaches_over_ssh_and_round_trips_input() {
     assert!(matches!(event, UiEvent::UntrustedHostKey { changed: true, hop, .. } if hop == jumps));
 }
 
-/// Type a command into the focused pane and wait for its output. A carriage
-/// return is Enter for both a POSIX tty and the Windows console.
+/// Type a command into the focused pane and wait for its output. The newline
+/// is sent as an Enter key press, which every pane's shell takes.
 fn echo_round_trip(session: &Session) {
     wait(session, "snapshot", |e| matches!(e, UiEvent::Snapshot));
     let view: serde_json::Value = serde_json::from_str(&session.take_view().unwrap()).unwrap();
@@ -176,7 +176,7 @@ fn echo_round_trip(session: &Session) {
     loop {
         if !typed
             && session
-                .text_input(None, &format!("echo {marker}\r"))
+                .text_input(None, &format!("echo {marker}\n"))
                 .is_ok()
         {
             typed = true;

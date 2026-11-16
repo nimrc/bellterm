@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Changelog — Bellterm</title>
+<meta name="description" content="What changed in each Bellterm release.">
+<meta name="theme-color" content="#f5f5f7">
+<link rel="canonical" href="https://bellterm.app/changelog/">
+<link rel="alternate" hreflang="en" href="https://bellterm.app/changelog/">
+<link rel="alternate" hreflang="zh-CN" href="https://bellterm.app/zh/changelog/">
+<link rel="alternate" hreflang="x-default" href="https://bellterm.app/changelog/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bellterm">
+<meta property="og:title" content="Changelog — Bellterm">
+<meta property="og:description" content="What changed in each Bellterm release.">
+<meta property="og:url" content="https://bellterm.app/changelog/">
+<meta property="og:image" content="https://bellterm.app/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/"><img src="/icon.svg" alt="">Bellterm</a>
+  <nav aria-label="Main">
+    <a href="/">Home</a>
+    <a href="https://github.com/nimrc/bellterm">GitHub</a>
+    <a href="/zh/changelog/" hreflang="zh-CN" lang="zh-CN">中文</a>
+  </nav>
+</header>
+
+<main class="wrap doc">
+  <h1>Changelog</h1>
+  <p class="meta">Android releases, newest first. The Android app offers each one on its own; the iOS beta on TestFlight picks up the same changes in a later build.</p>
+
+  <h2 id="1.1.1">1.1.1</h2>
+  <p class="meta"><time datetime="2026-11-16">16 November 2026</time> · Android · <a href="https://github.com/nimrc/bellterm/releases/tag/v1.1.1">Release on GitHub</a></p>
+  <ul>
+    <li><strong>Herdr's saved machines.</strong> When Herdr on a host has saved SSH machines with <code>herdr machine add</code>, the session drawer lists them under Machines, with the host first, as Herdr's own sidebar does. Tap one to open its workspaces.</li>
+    <li>Bellterm reaches a machine through its host: the host's own SSH keys, configuration and known hosts sign in, so the machine needs nothing new from your phone.</li>
+    <li>A machine you opened stays in the node list, shown <em>via</em> its host, and is removed together with the host.</li>
+    <li>When a host cannot reach one of its machines, Bellterm shows the error the host's SSH reported.</li>
+  </ul>
+
+  <h2 id="1.1.0">1.1.0</h2>
+  <p class="meta"><time datetime="2026-11-16">16 November 2026</time> · Android · <a href="https://github.com/nimrc/bellterm/releases/tag/v1.1.0">Release on GitHub</a></p>
+  <ul>
+    <li><strong>Windows hosts.</strong> Connect to Windows machines over OpenSSH, whether their default shell is <code>cmd.exe</code> or PowerShell.</li>
+    <li><strong>Install or update Herdr from the app.</strong> When a host has no Herdr, or one too old for Bellterm, tap Install Herdr or Update Herdr. Bellterm runs Herdr's own <code>herdr update --handoff</code>, which hands running sessions to the new version, or its installer: <code>install.sh</code>, or <code>install.ps1</code> on Windows.</li>
+  </ul>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Bellterm works with Herdr but is not affiliated with, endorsed by, or supported by Herdr or herdr.dev.</p>
+    <p>Released under the Apache License 2.0. <a href="https://github.com/nimrc/bellterm">Source on GitHub</a>. <a href="/changelog/">Changelog</a> · <a href="/support/">Support</a> · <a href="/privacy/">Privacy</a> · <a href="/zh/changelog/" hreflang="zh-CN" lang="zh-CN">中文</a></p>
+  </div>
+</footer>
+</body>
+</html>

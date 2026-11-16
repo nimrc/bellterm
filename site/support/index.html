@@ -42,7 +42,7 @@
   <h2>Common questions</h2>
 
   <h3>What do I need before the first connection?</h3>
-  <p>A machine you can reach over SSH, with Herdr 0.9.0 or later and <code>/bin/sh</code> on it. On iPhone, install the beta from <a href="https://testflight.apple.com/join/aYFsFsRf">TestFlight</a>; on Android 10 or newer, <a href="https://dl.bellterm.app/bellterm.apk">download the APK</a>. Jump hosts need SSH with TCP forwarding allowed.</p>
+  <p>A machine you can reach over SSH, with Herdr 0.9.0 or later and <code>/bin/sh</code> on it, or PowerShell on a Windows OpenSSH host. On iPhone, install the beta from <a href="https://testflight.apple.com/join/aYFsFsRf">TestFlight</a>; on Android 10 or newer, <a href="https://dl.bellterm.app/bellterm.apk">download the APK</a>. Jump hosts need SSH with TCP forwarding allowed.</p>
 
   <h3>How do I connect the first time?</h3>
   <p>On first launch Bellterm generates an Ed25519 key for the device. Open Keys &amp; certificates, copy the public key, add it to <code>~/.ssh/authorized_keys</code> on the host, then add the host as a node — or import your <code>~/.ssh/config</code>. Check that the host key fingerprint matches what the host reports the first time you connect.</p>
@@ -63,7 +63,7 @@
 <footer>
   <div class="wrap">
     <p>Bellterm works with Herdr but is not affiliated with, endorsed by, or supported by Herdr or herdr.dev.</p>
-    <p>Released under the Apache License 2.0. <a href="https://github.com/nimrc/bellterm">Source on GitHub</a>. <a href="/support/">Support</a> · <a href="/privacy/">Privacy</a> · <a href="/zh/support/" hreflang="zh-CN" lang="zh-CN">中文</a></p>
+    <p>Released under the Apache License 2.0. <a href="https://github.com/nimrc/bellterm">Source on GitHub</a>. <a href="/changelog/">Changelog</a> · <a href="/support/">Support</a> · <a href="/privacy/">Privacy</a> · <a href="/zh/support/" hreflang="zh-CN" lang="zh-CN">中文</a></p>
   </div>
 </footer>
 </body>

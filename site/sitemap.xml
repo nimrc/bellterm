@@ -36,4 +36,16 @@
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://bellterm.app/zh/support/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://bellterm.app/support/"/>
   </url>
+  <url>
+    <loc>https://bellterm.app/changelog/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bellterm.app/changelog/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://bellterm.app/zh/changelog/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bellterm.app/changelog/"/>
+  </url>
+  <url>
+    <loc>https://bellterm.app/zh/changelog/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bellterm.app/changelog/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://bellterm.app/zh/changelog/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bellterm.app/changelog/"/>
+  </url>
 </urlset>

@@ -240,7 +240,8 @@ whenever *Check for updates* is tapped in Settings. When it lists a higher
 the browser. To publish one:
 
 1. Optionally write release notes to `release-notes/<version>.en.txt` and
-   `.zh.txt` on `main`.
+   `.zh.txt` on `main`, and add the release to bellterm.app's changelog,
+   `site/changelog/` and `site/zh/changelog/`.
 2. Run the Release workflow from the Actions tab with the version, such as
    `1.2.0`. It sets `versionName` and `versionCode` (`10200`) in
    `app/build.gradle.kts`, builds the APK with the release key (from the

@@ -151,7 +151,7 @@ fn attaches_over_ssh_and_round_trips_input() {
     };
     assert!(pins.iter().all(Option::is_some));
 
-    echo_round_trip(&session);
+    echo_round_trip(&session, "attach");
 
     // A wrong pin on the target is refused as a changed key.
     let mismatched =
@@ -164,13 +164,14 @@ fn attaches_over_ssh_and_round_trips_input() {
 
 /// Type a command into the focused pane and wait for its output. The newline
 /// is sent as an Enter key press, which every pane's shell takes.
-fn echo_round_trip(session: &Session) {
+fn echo_round_trip(session: &Session, round: &str) {
     wait(session, "snapshot", |e| matches!(e, UiEvent::Snapshot));
     let view: serde_json::Value = serde_json::from_str(&session.take_view().unwrap()).unwrap();
     assert!(!view["workspaces"].as_array().unwrap().is_empty());
     wait(session, "frame", |e| matches!(e, UiEvent::Frame));
 
-    let marker = format!("bellterm-{}", std::process::id());
+    // Unique per round: a reattached pane still shows earlier rounds.
+    let marker = format!("bellterm-{}-{round}", std::process::id());
     let deadline = Instant::now() + Duration::from_secs(30);
     let mut typed = false;
     loop {
@@ -223,6 +224,6 @@ fn installs_herdr_then_attaches() {
         wait_for(&session, "connected", Duration::from_secs(90), |e| {
             matches!(e, UiEvent::Connected { .. })
         });
-        echo_round_trip(&session);
+        echo_round_trip(&session, round);
     }
 }

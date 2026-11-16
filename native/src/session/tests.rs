@@ -86,3 +86,11 @@ fn a_bridge_closed_before_any_herdr_answered_offers_an_install() {
     assert_eq!(json(event)["type"], "herdr_missing");
     assert_eq!(connector_refusal(&Error::SshClosed), None);
 }
+
+#[test]
+fn a_windows_host_without_herdr_offers_an_install() {
+    let error = Error::Client(herdr_client::Error::SshRefused(
+        herdr_client::SshFailure::HerdrMissing,
+    ));
+    assert_eq!(connector_refusal(&error), Some(UiEvent::HerdrMissing));
+}

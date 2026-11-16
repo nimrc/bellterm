@@ -5,14 +5,19 @@
 //! and runs Herdr's remote bridge on the last. The bridge channel is pumped
 //! through a Unix socket pair so herdr-client's blocking worker reads it like
 //! the bridge it spawns on the desktop. The async runtime is confined to this
-//! one thread and owns only the SSH sessions. [`run`] walks the same route to
-//! run one command and collect what it prints.
+//! one thread and owns only the SSH sessions. [`Remote::run`] runs a command
+//! over the same sessions and collects what it prints. A Windows OpenSSH host
+//! cannot run the POSIX bridge, so [`open`] then probes it through PowerShell
+//! and bridges the `herdr.exe` it finds over another channel.
 
 mod auth;
 
 use crate::{Error, Result};
 pub use auth::Credential;
-use herdr_client::{Stream, answer_remote_bridge, remote_bridge_command};
+use herdr_client::{
+    Stream, answer_remote_bridge, answer_windows_bridge, remote_bridge_command,
+    windows_bridge_command, windows_probe_command,
+};
 use russh::{
     ChannelMsg, Disconnect,
     client::{self, Handle},
@@ -63,106 +68,166 @@ pub struct Route {
 /// Open the bridge to the route's Herdr and answer its discovery. Blocks, so
 /// it runs on herdr-client's I/O worker inside the connector; `stop` cancels.
 pub fn open(route: Route, stop: &AtomicBool) -> Result<Stream> {
-    if route.hops.is_empty() {
-        return Err(Error::EmptyRoute);
+    let session = route.session.clone();
+    let posix = remote_bridge_command(&session)?;
+    let remote = Remote::connect(route, stop)?;
+    match remote.bridge(posix, stop, answer_remote_bridge) {
+        Err(Error::Client(herdr_client::Error::SshClosed)) => {}
+        result => return result,
     }
-    let command = remote_bridge_command(&route.session)?;
-    let (mut ours, theirs) = UnixStream::pair()?;
-    let (ready, outcome) = mpsc::sync_channel(1);
-    thread::Builder::new()
-        .name("bellterm-ssh".into())
-        .spawn(move || {
-            let runtime = match tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-            {
-                Ok(runtime) => runtime,
-                Err(error) => {
-                    let _ = ready.send(Err(Error::Io(error)));
-                    return;
-                }
-            };
-            runtime.block_on(run_bridge(route, command, theirs, ready));
+    // Without a banner the host either has no Herdr, or is Windows OpenSSH,
+    // whose `cmd.exe` or PowerShell cannot run the POSIX bridge.
+    let probe = remote.run(
+        windows_probe_command(&session)?,
+        Collect {
+            timeout: PROBE_TIMEOUT,
+            limit: PROBE_LIMIT,
+            stderr: false,
+        },
+        stop,
+    )?;
+    match windows_bridge_command(&probe.tail, &session) {
+        None => Err(herdr_client::Error::SshClosed.into()),
+        Some(command) => remote.bridge(command?, stop, answer_windows_bridge),
+    }
+}
+
+/// The Windows probe asks each `herdr.exe` for its status, which can start a
+/// cold PowerShell first.
+const PROBE_TIMEOUT: Duration = Duration::from_secs(30);
+const PROBE_LIMIT: usize = 64 * 1024;
+
+/// What a command run with [`Remote::run`] left behind.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Output {
+    /// `None` when the host closed the channel without reporting one.
+    pub exit_status: Option<u32>,
+    /// The last bytes of stdout, and of stderr when collected, interleaved as
+    /// they arrived.
+    pub tail: Vec<u8>,
+}
+
+/// How [`Remote::run`] collects a command's output.
+#[derive(Debug, Clone, Copy)]
+pub struct Collect {
+    /// How long the command may run once its channel is open.
+    pub timeout: Duration,
+    /// How many of the last bytes to keep.
+    pub limit: usize,
+    /// Whether stderr is kept along with stdout.
+    pub stderr: bool,
+}
+
+/// Every hop of a route, connected and signed in on one runtime thread that
+/// opens a channel on the last for each request. Dropping it lets the thread
+/// disconnect once every bridge it pumps has closed.
+pub struct Remote {
+    requests: tokio::sync::mpsc::UnboundedSender<Request>,
+}
+
+enum Request {
+    Bridge {
+        command: String,
+        stream: UnixStream,
+        opened: mpsc::SyncSender<Result<()>>,
+    },
+    Run {
+        command: String,
+        collect: Collect,
+        done: mpsc::SyncSender<Result<Output>>,
+    },
+}
+
+impl Remote {
+    /// Connect and authenticate every hop. Blocks: call it from a background
+    /// thread; `stop` cancels.
+    pub fn connect(route: Route, stop: &AtomicBool) -> Result<Self> {
+        if route.hops.is_empty() {
+            return Err(Error::EmptyRoute);
+        }
+        let (requests, received) = tokio::sync::mpsc::unbounded_channel();
+        let (ready, outcome) = mpsc::sync_channel(1);
+        thread::Builder::new()
+            .name("bellterm-ssh".into())
+            .spawn(move || {
+                let runtime = match tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                {
+                    Ok(runtime) => runtime,
+                    Err(error) => {
+                        let _ = ready.send(Err(Error::Io(error)));
+                        return;
+                    }
+                };
+                runtime.block_on(serve(route, received, ready));
+            })?;
+        wait(&outcome, stop, SETUP_TIMEOUT)?;
+        Ok(Self { requests })
+    }
+
+    /// Run `command` as a bridge pumped through a socket, then let `answer`
+    /// read its banner on the end returned.
+    fn bridge(
+        &self,
+        command: String,
+        stop: &AtomicBool,
+        answer: impl FnOnce(&mut UnixStream, &AtomicBool) -> herdr_client::Result<()>,
+    ) -> Result<Stream> {
+        let (mut ours, theirs) = UnixStream::pair()?;
+        let (opened, outcome) = mpsc::sync_channel(1);
+        self.send(Request::Bridge {
+            command,
+            stream: theirs,
+            opened,
         })?;
+        wait(&outcome, stop, SETUP_TIMEOUT)?;
+        ours.set_read_timeout(Some(POLL))?;
+        ours.set_write_timeout(Some(Duration::from_secs(1)))?;
+        answer(&mut ours, stop)?;
+        Ok(ours)
+    }
+
+    /// Run `command` and collect its output. Blocks for at most the collect
+    /// timeout once its channel is open.
+    pub fn run(&self, command: String, collect: Collect, stop: &AtomicBool) -> Result<Output> {
+        let (done, outcome) = mpsc::sync_channel(1);
+        self.send(Request::Run {
+            command,
+            collect,
+            done,
+        })?;
+        wait(&outcome, stop, SETUP_TIMEOUT + collect.timeout)
+    }
+
+    fn send(&self, request: Request) -> Result<()> {
+        self.requests.send(request).map_err(|_| Error::SshClosed)
+    }
+}
+
+/// Wait for the runtime thread's answer, at most `limit`.
+fn wait<T>(outcome: &mpsc::Receiver<Result<T>>, stop: &AtomicBool, limit: Duration) -> Result<T> {
     let started = Instant::now();
     loop {
         if stop.load(Ordering::Acquire) {
             return Err(Error::Cancelled);
         }
         match outcome.recv_timeout(POLL) {
-            Ok(result) => break result?,
-            Err(mpsc::RecvTimeoutError::Timeout) if started.elapsed() < SETUP_TIMEOUT => {}
+            Ok(result) => return result,
+            Err(mpsc::RecvTimeoutError::Timeout) if started.elapsed() < limit => {}
             Err(mpsc::RecvTimeoutError::Timeout) => return Err(Error::Timeout),
             Err(mpsc::RecvTimeoutError::Disconnected) => return Err(Error::SshClosed),
         }
     }
-    ours.set_read_timeout(Some(POLL))?;
-    ours.set_write_timeout(Some(Duration::from_secs(1)))?;
-    answer_remote_bridge(&mut ours, stop)?;
-    Ok(ours)
 }
 
-/// What a command run with [`run`] left behind.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Output {
-    /// `None` when the host closed the channel without reporting one.
-    pub exit_status: Option<u32>,
-    /// The last bytes of stdout and stderr, interleaved as they arrived.
-    pub tail: Vec<u8>,
-}
-
-/// Run `command` on the route's last host and collect its output, keeping
-/// the last `limit` bytes. Blocks for at most `timeout` once every hop is up:
-/// call it from a background thread.
-pub fn run(route: Route, command: &str, timeout: Duration, limit: usize) -> Result<Output> {
-    if route.hops.is_empty() {
-        return Err(Error::EmptyRoute);
-    }
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()?;
-    runtime.block_on(async {
-        let (handles, channel) =
-            tokio::time::timeout(SETUP_TIMEOUT, start(route, command.to_owned()))
-                .await
-                .map_err(|_| Error::Timeout)??;
-        let collected = tokio::time::timeout(timeout, collect(channel, limit)).await;
-        for handle in handles.iter().rev() {
-            let _ = handle.disconnect(Disconnect::ByApplication, "", "en").await;
-        }
-        collected.map_err(|_| Error::CommandTimeout)
-    })
-}
-
-async fn collect(mut channel: russh::Channel<client::Msg>, limit: usize) -> Output {
-    let mut tail = Vec::new();
-    let mut exit_status = None;
-    while let Some(message) = channel.wait().await {
-        match message {
-            ChannelMsg::Data { data } | ChannelMsg::ExtendedData { data, .. } => {
-                tail.extend_from_slice(&data);
-                if tail.len() > limit {
-                    tail.drain(..tail.len() - limit);
-                }
-            }
-            ChannelMsg::ExitStatus {
-                exit_status: status,
-            } => exit_status = Some(status),
-            _ => {}
-        }
-    }
-    Output { exit_status, tail }
-}
-
-async fn run_bridge(
+async fn serve(
     route: Route,
-    command: String,
-    theirs: UnixStream,
+    mut requests: tokio::sync::mpsc::UnboundedReceiver<Request>,
     ready: mpsc::SyncSender<Result<()>>,
 ) {
-    let (handles, channel) = match tokio::time::timeout(SETUP_TIMEOUT, start(route, command)).await
-    {
-        Ok(Ok(started)) => started,
+    let handles = match tokio::time::timeout(SETUP_TIMEOUT, start(route)).await {
+        Ok(Ok(handles)) => handles,
         Ok(Err(error)) => {
             let _ = ready.send(Err(error));
             return;
@@ -172,17 +237,38 @@ async fn run_bridge(
             return;
         }
     };
-    let pumped = async {
-        theirs.set_nonblocking(true)?;
-        let mut theirs = tokio::net::UnixStream::from_std(theirs)?;
-        let mut channel = channel.into_stream();
-        let _ = ready.send(Ok(()));
-        // Ends when either side closes: the worker dropping its end on
-        // disconnect, or the remote bridge exiting.
-        tokio::io::copy_bidirectional(&mut channel, &mut theirs).await
-    };
-    if let Err(error) = pumped.await {
-        tracing::info!(kind = ?error.kind(), "ssh bridge pump ended");
+    let _ = ready.send(Ok(()));
+    let mut pumps = Vec::new();
+    while let Some(request) = requests.recv().await {
+        let Some(last) = handles.last() else { break };
+        match request {
+            Request::Bridge {
+                command,
+                stream,
+                opened,
+            } => match exec(last, command).await {
+                Ok(channel) => pumps.push(tokio::spawn(pump(channel, stream, opened))),
+                Err(error) => {
+                    let _ = opened.send(Err(error));
+                }
+            },
+            Request::Run {
+                command,
+                collect,
+                done,
+            } => {
+                let output = match exec(last, command).await {
+                    Ok(channel) => tokio::time::timeout(collect.timeout, gather(channel, collect))
+                        .await
+                        .map_err(|_| Error::CommandTimeout),
+                    Err(error) => Err(error),
+                };
+                let _ = done.send(output);
+            }
+        }
+    }
+    for pump in pumps {
+        let _ = pump.await;
     }
     // The last hop first: each inner session rides on the one before it.
     for handle in handles.iter().rev() {
@@ -190,13 +276,63 @@ async fn run_bridge(
     }
 }
 
+async fn exec(session: &Session, command: String) -> Result<russh::Channel<client::Msg>> {
+    let channel = session.channel_open_session().await?;
+    channel.exec(true, command).await?;
+    Ok(channel)
+}
+
+async fn pump(
+    channel: russh::Channel<client::Msg>,
+    theirs: UnixStream,
+    opened: mpsc::SyncSender<Result<()>>,
+) {
+    let theirs = theirs
+        .set_nonblocking(true)
+        .and_then(|()| tokio::net::UnixStream::from_std(theirs));
+    let mut theirs = match theirs {
+        Ok(theirs) => theirs,
+        Err(error) => {
+            let _ = opened.send(Err(error.into()));
+            return;
+        }
+    };
+    let _ = opened.send(Ok(()));
+    let mut channel = channel.into_stream();
+    // Ends when either side closes: the worker dropping its end on
+    // disconnect, or the remote bridge exiting.
+    if let Err(error) = tokio::io::copy_bidirectional(&mut channel, &mut theirs).await {
+        tracing::info!(kind = ?error.kind(), "ssh bridge pump ended");
+    }
+}
+
+async fn gather(mut channel: russh::Channel<client::Msg>, collect: Collect) -> Output {
+    let mut tail = Vec::new();
+    let mut exit_status = None;
+    while let Some(message) = channel.wait().await {
+        let data = match message {
+            ChannelMsg::Data { data } => data,
+            ChannelMsg::ExtendedData { data, .. } if collect.stderr => data,
+            ChannelMsg::ExitStatus {
+                exit_status: status,
+            } => {
+                exit_status = Some(status);
+                continue;
+            }
+            _ => continue,
+        };
+        tail.extend_from_slice(&data);
+        if tail.len() > collect.limit {
+            tail.drain(..tail.len() - collect.limit);
+        }
+    }
+    Output { exit_status, tail }
+}
+
 type Session = Handle<Verifier>;
 
-/// Connect and authenticate every hop, then start the bridge on the last.
-async fn start(
-    route: Route,
-    command: String,
-) -> Result<(Vec<Session>, russh::Channel<client::Msg>)> {
+/// Connect and authenticate every hop.
+async fn start(route: Route) -> Result<Vec<Session>> {
     let config = Arc::new(client::Config {
         keepalive_interval: route.keepalive,
         keepalive_max: 4,
@@ -252,10 +388,10 @@ async fn start(
         previous = hop.address();
         sessions.push(session);
     }
-    let last = sessions.last().ok_or(Error::EmptyRoute)?;
-    let channel = last.channel_open_session().await?;
-    channel.exec(true, command).await?;
-    Ok((sessions, channel))
+    if sessions.is_empty() {
+        return Err(Error::EmptyRoute);
+    }
+    Ok(sessions)
 }
 
 /// Accepts exactly the pinned key, recording what was offered either way.

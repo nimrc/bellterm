@@ -604,26 +604,51 @@ fn connect_powershell(
             &stderr,
         )));
     }
-    if !lines(&output).any(|line| line == PROBE_DONE.as_bytes()) {
-        return Err(Error::SshRefused(posix));
-    }
-    let candidates = powershell::candidates(&output);
-    let Some((path, idle_timeout)) = candidates.iter().find_map(|candidate| {
-        powershell::compatible(&candidate.status).map(|idle| (candidate.path.as_str(), idle))
-    }) else {
-        return Err(match candidates.first() {
-            None => Error::SshRefused(SshFailure::HerdrMissing),
-            Some(candidate) => incompatible(&candidate.status),
-        });
+    let bridge = match powershell_bridge(&output, session) {
+        Some(bridge) => bridge?,
+        None => return Err(Error::SshRefused(posix)),
     };
-    let bridge = command(
-        target,
-        &powershell::bridge_command(path, session, idle_timeout),
-    );
-    start_bridge(bridge, stop, |stream, stop| {
-        await_ready(stream, stop, Instant::now()).map(drop)
-    })?
-    .map_err(|closed| Error::SshRefused(closed.failure))
+    start_bridge(command(target, &bridge), stop, answer_powershell)?
+        .map_err(|closed| Error::SshRefused(closed.failure))
+}
+
+/// The probe for a host whose shell is `cmd.exe` or PowerShell.
+#[cfg(unix)]
+pub(crate) fn powershell_probe(session: &str) -> String {
+    powershell::probe_command(session)
+}
+
+/// `script` run by PowerShell whether the host's shell is `cmd.exe` or
+/// PowerShell.
+#[cfg(unix)]
+pub(crate) fn powershell_command(script: &str) -> String {
+    powershell::encoded_command(script)
+}
+
+/// The bridge command for the first compatible `herdr.exe` in the output of
+/// [`powershell_probe`]. `None` when the probe never finished, as on a host
+/// that has no PowerShell either.
+#[cfg(unix)]
+pub(crate) fn powershell_bridge(output: &[u8], session: &str) -> Option<Result<String>> {
+    if !lines(output).any(|line| line == PROBE_DONE.as_bytes()) {
+        return None;
+    }
+    let candidates = powershell::candidates(output);
+    let bridge = candidates.iter().find_map(|candidate| {
+        powershell::compatible(&candidate.status)
+            .map(|idle| powershell::bridge_command(&candidate.path, session, idle))
+    });
+    Some(bridge.ok_or_else(|| match candidates.first() {
+        None => Error::SshRefused(SshFailure::HerdrMissing),
+        Some(candidate) => incompatible(&candidate.status),
+    }))
+}
+
+/// Wait for the PowerShell bridge's ready banner. Unlike [`handshake`] there
+/// is nothing to choose: the probe already picked the executable.
+#[cfg(unix)]
+pub(crate) fn answer_powershell(stream: &mut (impl Read + Write), stop: &AtomicBool) -> Result<()> {
+    await_ready(stream, stop, Instant::now()).map(drop)
 }
 
 /// The stdio bridge through an application-built remote command, such as

@@ -2,18 +2,20 @@
 //! An installed Herdr, the first one the bridge would try, updates itself
 //! with live handoff so running sessions move to the new version; a host with
 //! none gets Herdr's own installer, which puts it in `~/.local/bin`, where the
-//! bridge looks.
+//! bridge looks. A Windows host, whose shell cannot run `/bin/sh`, gets the
+//! same through PowerShell and Herdr's `install.ps1`.
 
 use crate::{
     Result,
-    ssh::{self, Route},
+    ssh::{self, Collect, Remote, Route},
 };
-use herdr_client::{HERDR_CANDIDATES, shell_quote};
+use herdr_client::{HERDR_CANDIDATES, powershell_command, shell_quote};
 use serde_json::json;
-use std::time::Duration;
+use std::{sync::atomic::AtomicBool, time::Duration};
 
-/// Herdr's installer, as herdr.dev publishes it.
+/// Herdr's installers, as herdr.dev publishes them.
 pub const INSTALLER_URL: &str = "https://herdr.dev/install.sh";
+pub const WINDOWS_INSTALLER_URL: &str = "https://herdr.dev/install.ps1";
 /// A download and a handoff over a slow mobile link.
 const TIMEOUT: Duration = Duration::from_secs(600);
 /// Enough of the end for the user to see why it failed.
@@ -51,6 +53,17 @@ else
 fi
 sh "$tmp" </dev/null"#,
         url = shell_quote(url)
+    )
+}
+
+/// [`script`] for PowerShell: the `herdr.exe` the Windows probe finds first on
+/// `PATH` or in the installer's own location, or else `install.ps1`, run as
+/// herdr.dev documents it. Windows PowerShell 5.1 may default to TLS 1.0, and
+/// with stderr redirected it writes `Write-Host` there as CLIXML, so the
+/// information stream joins stdout as plain text.
+pub fn windows_script() -> String {
+    format!(
+        r#"$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; $herdr = Get-Command herdr.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source; if ($null -eq $herdr) {{ $herdrHome = if ([string]::IsNullOrWhiteSpace($env:HERDR_HOME)) {{ Join-Path $env:USERPROFILE '.herdr' }} else {{ $env:HERDR_HOME }}; $current = Join-Path $herdrHome 'packages\standalone\current\herdr.exe'; if (Test-Path -LiteralPath $current -PathType Leaf) {{ $herdr = $current }} }}; if ($null -ne $herdr) {{ [Console]::Out.WriteLine("Updating $herdr"); & $herdr update --handoff; exit $LASTEXITCODE }}; $url = '{WINDOWS_INSTALLER_URL}'; [Console]::Out.WriteLine("Installing Herdr from $url"); [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; Invoke-RestMethod -Uri $url | Invoke-Expression 6>&1; exit 0"#,
     )
 }
 
@@ -96,8 +109,38 @@ pub(crate) fn plain_text(bytes: &[u8]) -> String {
 /// Blocks until the host finishes, at most ten minutes: call it from a
 /// background thread.
 pub fn run(route: Route) -> Result<Outcome> {
-    let command = format!("/bin/sh -c {}", shell_quote(&script()));
-    ssh::run(route, &command, TIMEOUT, OUTPUT_LIMIT).map(Outcome::from_output)
+    let never = AtomicBool::new(false);
+    let remote = Remote::connect(route, &never)?;
+    let command = if is_posix(&remote, &never)? {
+        format!("/bin/sh -c {}", shell_quote(&script()))
+    } else {
+        powershell_command(&windows_script())
+    };
+    let collect = Collect {
+        timeout: TIMEOUT,
+        limit: OUTPUT_LIMIT,
+        stderr: true,
+    };
+    remote
+        .run(command, collect, &never)
+        .map(Outcome::from_output)
+}
+
+/// Whether the host runs `/bin/sh`. Windows OpenSSH starts `cmd.exe` or
+/// PowerShell, which cannot find it; the setup script's own failures share
+/// their exit codes, so this asks before running it.
+fn is_posix(remote: &Remote, stop: &AtomicBool) -> Result<bool> {
+    let collect = Collect {
+        timeout: Duration::from_secs(30),
+        limit: 0,
+        stderr: false,
+    };
+    let output = remote.run(
+        format!("/bin/sh -c {}", shell_quote("exit 0")),
+        collect,
+        stop,
+    )?;
+    Ok(output.exit_status == Some(0))
 }
 
 #[cfg(test)]

@@ -9,6 +9,10 @@ enum class AuthMethod { Key, Password }
  * A saved SSH server: a machine whose Herdr daemon Bellterm attaches to, or a
  * jump host on the way to one. A node reached through another names it in
  * [jumpId]; chains are resolved by [NodeStore.route].
+ *
+ * A node with a [machine] is one of the SSH machines Herdr on its jump host
+ * saved with `herdr machine add`: the jump host's own `ssh` reaches
+ * [machine], so its address, user, and credentials here are unused.
  */
 data class Node(
     val id: String = UUID.randomUUID().toString(),
@@ -26,9 +30,11 @@ data class Node(
     /** SSH keepalive in seconds; 0 turns it off. */
     val keepAlive: Int = 15,
     val lastUsed: Long = 0,
+    /** The SSH target the jump host's Herdr saved this machine under. */
+    val machine: String? = null,
 ) {
     val title: String get() = name.ifBlank { address }
-    val destination: String get() = if (port == 22) "$user@$address" else "$user@$address:$port"
+    val destination: String get() = machine ?: if (port == 22) "$user@$address" else "$user@$address:$port"
 
     /** How the known-hosts list names this server, as the SSH layer does. */
     val hostKeyName: String get() = "$address:$port"
@@ -47,6 +53,7 @@ data class Node(
         .put("color", color)
         .put("keepalive", keepAlive)
         .put("last_used", lastUsed)
+        .put("machine", machine)
 
     companion object {
         fun fromJson(o: JSONObject) = Node(
@@ -63,6 +70,7 @@ data class Node(
             color = o.optInt("color"),
             keepAlive = o.optInt("keepalive", 15),
             lastUsed = o.optLong("last_used"),
+            machine = o.optString("machine").takeUnless { o.isNull("machine") || it.isEmpty() },
         )
 
         /** Herdr session names are plain path components. */

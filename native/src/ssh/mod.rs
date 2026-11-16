@@ -8,14 +8,16 @@
 //! one thread and owns only the SSH sessions. [`Remote::run`] runs a command
 //! over the same sessions and collects what it prints. A Windows OpenSSH host
 //! cannot run the POSIX bridge, so [`open`] then probes it through PowerShell
-//! and bridges the `herdr.exe` it finds over another channel.
+//! and bridges the `herdr.exe` it finds over another channel. A route with a
+//! [`Route::relay`] runs every command one step further, through the last
+//! hop's own `ssh` to a machine its Herdr saved.
 
 mod auth;
 
 use crate::{Error, Result};
 pub use auth::Credential;
 use herdr_client::{
-    Stream, answer_remote_bridge, answer_windows_bridge, remote_bridge_command,
+    Stream, answer_remote_bridge, answer_windows_bridge, relay_command, remote_bridge_command,
     windows_bridge_command, windows_probe_command,
 };
 use russh::{
@@ -63,6 +65,10 @@ pub struct Route {
     pub session: String,
     /// SSH keepalive; `None` disables it.
     pub keepalive: Option<Duration>,
+    /// An SSH target the last hop reaches with its own `ssh`, as a machine
+    /// saved by `herdr machine add` there. Its keys and known hosts decide
+    /// that step; Herdr runs on the target.
+    pub relay: Option<String>,
 }
 
 /// Open the bridge to the route's Herdr and answer its discovery. Blocks, so
@@ -71,6 +77,7 @@ pub fn open(route: Route, stop: &AtomicBool) -> Result<Stream> {
     let session = route.session.clone();
     let posix = remote_bridge_command(&session)?;
     let remote = Remote::connect(route, stop)?;
+    remote.reach_relay(stop)?;
     match remote.bridge(posix, stop, answer_remote_bridge) {
         Err(Error::Client(herdr_client::Error::SshClosed)) => {}
         result => return result,
@@ -123,6 +130,7 @@ pub struct Collect {
 /// disconnect once every bridge it pumps has closed.
 pub struct Remote {
     requests: tokio::sync::mpsc::UnboundedSender<Request>,
+    relay: Option<String>,
 }
 
 enum Request {
@@ -145,6 +153,10 @@ impl Remote {
         if route.hops.is_empty() {
             return Err(Error::EmptyRoute);
         }
+        let relay = route.relay.clone();
+        if let Some(target) = &relay {
+            relay_command(target, "")?;
+        }
         let (requests, received) = tokio::sync::mpsc::unbounded_channel();
         let (ready, outcome) = mpsc::sync_channel(1);
         thread::Builder::new()
@@ -163,7 +175,46 @@ impl Remote {
                 runtime.block_on(serve(route, received, ready));
             })?;
         wait(&outcome, stop, SETUP_TIMEOUT)?;
-        Ok(Self { requests })
+        Ok(Self { requests, relay })
+    }
+
+    /// Whether the last hop reaches the relay target, so a failure there is
+    /// reported as what its `ssh` said rather than as a host without Herdr.
+    fn reach_relay(&self, stop: &AtomicBool) -> Result<()> {
+        let Some(target) = &self.relay else {
+            return Ok(());
+        };
+        let collect = Collect {
+            timeout: PROBE_TIMEOUT,
+            limit: 4096,
+            stderr: true,
+        };
+        // `exit 0` means the same to POSIX shells, cmd.exe, and PowerShell.
+        let reached = self.run("exit 0".to_owned(), collect, stop)?;
+        if reached.exit_status == Some(0) {
+            return Ok(());
+        }
+        let said = crate::herdr_setup::plain_text(&reached.tail);
+        Err(Error::Relay {
+            target: target.clone(),
+            detail: said
+                .lines()
+                .rev()
+                .find(|line| !line.trim().is_empty())
+                .map_or_else(
+                    || format!("exit status {:?}", reached.exit_status),
+                    |line| line.trim().to_owned(),
+                ),
+        })
+    }
+
+    /// `command` as the last hop runs it: through its `ssh` to the relay
+    /// target when there is one.
+    fn wrap(&self, command: String) -> Result<String> {
+        match &self.relay {
+            Some(target) => Ok(relay_command(target, &command)?),
+            None => Ok(command),
+        }
     }
 
     /// Run `command` as a bridge pumped through a socket, then let `answer`
@@ -174,6 +225,7 @@ impl Remote {
         stop: &AtomicBool,
         answer: impl FnOnce(&mut UnixStream, &AtomicBool) -> herdr_client::Result<()>,
     ) -> Result<Stream> {
+        let command = self.wrap(command)?;
         let (mut ours, theirs) = UnixStream::pair()?;
         let (opened, outcome) = mpsc::sync_channel(1);
         self.send(Request::Bridge {
@@ -191,6 +243,7 @@ impl Remote {
     /// Run `command` and collect its output. Blocks for at most the collect
     /// timeout once its channel is open.
     pub fn run(&self, command: String, collect: Collect, stop: &AtomicBool) -> Result<Output> {
+        let command = self.wrap(command)?;
         let (done, outcome) = mpsc::sync_channel(1);
         self.send(Request::Run {
             command,

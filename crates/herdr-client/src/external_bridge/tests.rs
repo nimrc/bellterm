@@ -149,3 +149,43 @@ fn the_windows_bridge_is_ready_after_its_crlf_banner() {
     ours.read_exact(&mut rest).unwrap();
     assert_eq!(&rest, b"wire");
 }
+
+/// The words `/bin/sh` splits `command` into.
+fn words(command: &str) -> Vec<String> {
+    let output = std::process::Command::new("/bin/sh")
+        .args([
+            "-c",
+            &format!("for word in {command}; do printf '%s\\0' \"$word\"; done"),
+        ])
+        .output()
+        .unwrap();
+    String::from_utf8(output.stdout)
+        .unwrap()
+        .split_terminator('\0')
+        .map(str::to_owned)
+        .collect()
+}
+
+#[test]
+fn relay_runs_the_command_through_the_hosts_own_ssh() {
+    let bridge = remote_bridge_command("work").unwrap();
+    let words = words(&relay_command("ssh://me@build:2222", &bridge).unwrap());
+    assert_eq!(words[..2], ["ssh", "-T"]);
+    assert!(words.windows(2).any(|w| w == ["-o", "BatchMode=yes"]));
+    assert!(
+        words
+            .windows(2)
+            .any(|w| w == ["-o", "StrictHostKeyChecking=yes"])
+    );
+    // The relayed command reaches the target's shell as one word, quotes and all.
+    assert_eq!(
+        words[words.len() - 3..],
+        ["--", "ssh://me@build:2222", bridge.as_str()]
+    );
+    for target in ["-oProxyCommand=x", "", "a:b@host"] {
+        assert!(
+            matches!(relay_command(target, "true"), Err(Error::InvalidSshTarget)),
+            "{target}"
+        );
+    }
+}

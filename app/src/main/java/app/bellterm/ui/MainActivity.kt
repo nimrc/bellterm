@@ -171,6 +171,7 @@ class MainActivity : ComponentActivity() {
                                 opened.value = null
                                 screen = "nodes"
                             },
+                            onOpen = { open(it) },
                         )
                     }
                 }

@@ -6,6 +6,8 @@ import android.app.NotificationManager
 import android.content.Context
 import app.bellterm.core.Connection
 import app.bellterm.core.HerdrSetup
+import app.bellterm.core.Machine
+import app.bellterm.core.Machines
 import app.bellterm.core.Native
 import app.bellterm.core.Routes
 import app.bellterm.data.AppLanguages
@@ -136,6 +138,16 @@ class BelltermApp : Application() {
                 if (_connections.value[node.id] === connection) reconnect(current, passwords, dark, remember)
             }
         }
+    }
+
+    /**
+     * The machines Herdr on [host] saved, reached over a connection of their
+     * own. Uses saved passwords only. Call off the main thread.
+     */
+    fun machines(host: Node): Result<List<Machine>> {
+        if (passwordsToAsk(host).isNotEmpty()) return Result.failure(IllegalStateException(getString(R.string.machines_need_password)))
+        val document = routeDocument(host, emptyMap(), dark = false, remember = false).getOrElse { return Result.failure(it) }
+        return runCatching { Machines.parse(Native.listMachines(document)) }
     }
 
     /** Nodes on [node]'s route that sign in with a password and have none saved. */

@@ -61,7 +61,8 @@ import app.bellterm.ui.theme.color
  * Herdr's sidebar as a navigation drawer: every workspace with its branch and
  * the daemon's status dot, and every agent. A long press on a workspace
  * offers renaming or closing it. Tabs are switched from the session's own tab
- * row, not here.
+ * row, not here. Like Herdr's own client, it also lists the host and the SSH
+ * machines its Herdr saved, each a session of its own.
  */
 @Composable
 fun SessionDrawer(
@@ -74,6 +75,9 @@ fun SessionDrawer(
     onNewWorkspace: () -> Unit,
     onRenameWorkspace: (Workspace) -> Unit,
     onCloseWorkspace: (Workspace) -> Unit,
+    /** The host first, then its machines; empty when it saved none. */
+    machines: List<MachineRow>,
+    onMachine: (MachineRow) -> Unit,
 ) {
     ModalDrawerSheet(
         drawerShape = RoundedCornerShape(topEnd = 32.dp, bottomEnd = 32.dp),
@@ -162,10 +166,34 @@ fun SessionDrawer(
                     )
                 }
             }
+            if (machines.isNotEmpty()) {
+                item { SectionLabel(stringResource(R.string.machines)) }
+                items(machines, key = { "m" + it.key }) { machine ->
+                    DrawerRow(
+                        selected = machine.current,
+                        accent = accent,
+                        onClick = { onMachine(machine) },
+                        leading = { NodeAvatar(machine.label, machine.color, size = 24.dp) },
+                        title = machine.label,
+                        detail = machine.target + if (machine.session != "default") " · ${machine.session}" else "",
+                        modifier = Modifier.testTag("machine:${machine.label}"),
+                    )
+                }
+            }
             item { Spacer(Modifier.size(24.dp)) }
         }
     }
 }
+
+/** A host or one of its saved machines in the drawer; [current] is this session's. */
+data class MachineRow(
+    val key: String,
+    val label: String,
+    val target: String,
+    val session: String,
+    val color: Int,
+    val current: Boolean,
+)
 
 @Composable
 private fun DrawerRow(

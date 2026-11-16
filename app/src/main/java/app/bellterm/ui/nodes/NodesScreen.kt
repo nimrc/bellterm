@@ -209,7 +209,7 @@ fun NodesScreen(app: BelltermApp, navigation: NodesNavigation) {
                     NodeCard(
                         node = node,
                         jump = app.nodes.get(node.jumpId),
-                        hasCertificate = node.auth == AuthMethod.Key && identities.firstOrNull { it.id == (node.identityId ?: Keychain.DEVICE) }?.certificate != null,
+                        hasCertificate = node.machine == null && node.auth == AuthMethod.Key && identities.firstOrNull { it.id == (node.identityId ?: Keychain.DEVICE) }?.certificate != null,
                         connection = connections[node.id],
                         onOpen = { navigation.open(node) },
                         onEdit = { navigation.edit(node) },
@@ -389,8 +389,11 @@ private fun NodeCard(
                 }
                 GlassMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     MenuItem(R.string.connect, Icons.Default.PlayArrow) { menu = false; onOpen() }
-                    MenuItem(R.string.edit, Icons.Default.Edit) { menu = false; onEdit() }
-                    MenuItem(R.string.duplicate, Icons.Default.Add) { menu = false; onDuplicate() }
+                    // A saved machine is defined by its host's Herdr, not here.
+                    if (node.machine == null) {
+                        MenuItem(R.string.edit, Icons.Default.Edit) { menu = false; onEdit() }
+                        MenuItem(R.string.duplicate, Icons.Default.Add) { menu = false; onDuplicate() }
+                    }
                     if (connection != null) {
                         MenuItem(R.string.disconnect, Icons.Default.Close) { menu = false; onDisconnect() }
                     }

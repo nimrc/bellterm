@@ -32,6 +32,13 @@ object Native {
      */
     external fun setupHerdr(configJson: String): String
 
+    /**
+     * The SSH machines Herdr on the route document's last host has saved, as
+     * a JSON array of `{id, label, target, session, enabled}`. Blocks for up
+     * to half a minute; throws when the host cannot be reached or list them.
+     */
+    external fun listMachines(configJson: String): String
+
     /** `{"private": …, "info": {algorithm, fingerprint, comment, public}}`; throws when unreadable. */
     external fun importKey(text: String, passphrase: String?): String
 

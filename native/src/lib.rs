@@ -10,6 +10,7 @@ pub mod herdr_setup;
 pub mod input;
 mod jni_api;
 pub mod keys;
+pub mod machines;
 pub mod render;
 mod screen;
 pub mod session;

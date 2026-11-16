@@ -71,6 +71,15 @@ pub fn answer_windows_bridge(stream: &mut (impl Read + Write), stop: &AtomicBool
     ssh::answer_powershell(stream, stop)
 }
 
+/// `command` run on `target` by the `ssh` of the host the result runs on, for
+/// an application that reaches Herdr through another host's saved machine:
+/// that host's OpenSSH configuration, keys, and known hosts decide whether
+/// `target` is reached. Wrap every remote command, the bridges included.
+#[cfg(unix)]
+pub fn relay_command(target: &str, command: &str) -> Result<String> {
+    ssh::relay_command(target, command)
+}
+
 /// `script` as a remote command that PowerShell runs whether the Windows
 /// host's shell is `cmd.exe` or PowerShell.
 #[cfg(unix)]

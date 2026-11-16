@@ -20,6 +20,10 @@ android {
         versionCode = 10100
         versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Google Play does not allow an app to update itself outside Play, so
+        // the Play bundle (-Pbellterm.play=true) leaves out the update check.
+        val play = providers.gradleProperty("bellterm.play").map(String::toBoolean).getOrElse(false)
+        buildConfigField("boolean", "UPDATE_CHECK", (!play).toString())
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
@@ -55,6 +59,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
     sourceSets["main"].jniLibs.directories.add(layout.buildDirectory.dir("rustJniLibs").get().asFile.path)

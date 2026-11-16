@@ -2,6 +2,7 @@ package app.bellterm.data
 
 import android.content.Context
 import android.os.Build
+import app.bellterm.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -98,9 +99,10 @@ sealed interface UpdateState {
 /**
  * Checks the download server for a newer release: at most daily on its own,
  * or whenever the user asks. Automatic checks fail silently; nothing is
- * downloaded here, the user opens the APK link in a browser.
+ * downloaded here, the user opens the APK link in a browser. The Play build
+ * never checks: Play updates it.
  */
-class UpdateChecker(private val context: Context) {
+class UpdateChecker(private val context: Context, val enabled: Boolean = BuildConfig.UPDATE_CHECK) {
     private val prefs = context.getSharedPreferences("updates", Context.MODE_PRIVATE)
     private val installed: Long = context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode
     private val _state = MutableStateFlow<UpdateState>(cached()?.let(UpdateState::Available) ?: UpdateState.Idle)
@@ -118,6 +120,7 @@ class UpdateChecker(private val context: Context) {
 
     /** Checks now when [force]d, otherwise only once a day has passed. */
     suspend fun check(force: Boolean) {
+        if (!enabled) return
         if (!force && !UpdateManifest.due(prefs.getLong("last_check", 0), System.currentTimeMillis())) return
         if (_state.value == UpdateState.Checking) return
         val previous = _state.value
@@ -133,8 +136,9 @@ class UpdateChecker(private val context: Context) {
         }
     }
 
+    // A sideloaded install updated through Play keeps the last manifest it saw.
     private fun cached(): UpdateInfo? =
-        prefs.getString("manifest", null)
+        prefs.getString("manifest", null)?.takeIf { enabled }
             ?.let { runCatching { UpdateManifest.parse(it) }.getOrNull() }
             ?.takeIf { it.offers(installed, Build.VERSION.SDK_INT) }
 

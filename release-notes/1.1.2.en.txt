@@ -1,0 +1,1 @@
+Settings has a What's new page listing each release's changes, with the installed version marked.

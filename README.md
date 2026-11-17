@@ -93,9 +93,10 @@ Android conventions it follows:
   A foreground-service notification shows the attachment, with **Disconnect**.
 - The soft keyboard types straight into the focused pane: no suggestions or
   autocorrect, and CJK input methods compose in place at the cursor.
-- An extra-keys row sits above the keyboard: Esc, Tab, latching **Ctrl** and
-  **Alt** for the next key, arrows and paging keys that repeat while held, and
-  symbols phone keyboards hide.
+- An extra-keys row sits above the keyboard: Esc, Tab, latching **Shift**,
+  **Ctrl** and **Alt** for the next key (they combine, e.g. Shift+← or
+  Ctrl+Shift+→), arrows and paging keys that repeat while held, and symbols
+  phone keyboards hide.
 - Drag or fling to scroll a pane, pinch to change the font size, long-press to
   select text with the system **Copy / Paste** toolbar. The bell can vibrate,
   and the screen can stay on during a session.

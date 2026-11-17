@@ -6,12 +6,14 @@ import android.content.Intent
 import android.os.Build
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 import app.bellterm.BelltermApp
 import app.bellterm.R
+import app.bellterm.data.ReleaseNotes
 import app.bellterm.data.ThemeMode
 import app.bellterm.ui.MainActivity
 import java.io.File
@@ -280,6 +282,27 @@ class GlassUiTest {
         shot("21_home_machine_node")
         deleteNode(HOST_NODE)
         assertTrue("the host's machines go with it", device.wait(Until.gone(By.res("node:$machine")), TIMEOUT))
+    }
+
+    @Test
+    fun t9_changelogListsReleases() {
+        openMenu(R.string.settings)
+        val settings = need(By.res("settings"))
+        val entry = By.text(string(R.string.changelog))
+        repeat(6) { if (!device.hasObject(entry)) settings.scroll(Direction.DOWN, 1f) }
+        need(entry).click()
+        need(By.res("changelog"))
+        need(By.textStartsWith("•  "))
+        // The installed version is marked when it has notes of its own.
+        val installed = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        if (ReleaseNotes.load(context, "en").any { it.version == installed }) {
+            need(By.text(string(R.string.changelog_installed, installed!!)))
+        }
+        shot("22_changelog")
+        need(By.text(string(android.R.string.ok))).click()
+        assertTrue(device.wait(Until.gone(By.res("changelog")), TIMEOUT))
+        need(By.res("back")).click()
+        need(By.res("action:keys"))
     }
 
     /** Adds [host] from the instrumentation arguments as a node, opens it, and trusts its key when vouched for. */

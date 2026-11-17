@@ -213,6 +213,9 @@
     <string name="section_about">关于</string>
     <string name="about_text">版本 %1$s</string>
     <string name="licenses">开源许可</string>
+    <string name="changelog">更新日志</string>
+    <string name="changelog_installed">%1$s · 当前版本</string>
+    <string name="changelog_website">在网站上查看</string>
     <string name="check_updates">检查更新</string>
     <string name="update_checking">正在检查…</string>
     <string name="update_up_to_date">已是最新版本</string>

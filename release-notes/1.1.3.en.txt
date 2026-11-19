@@ -1,0 +1,1 @@
+The extra-keys row has a Shift key: tap Shift, then a key, to send Shift+← or Shift+Tab, alone or with Ctrl and Alt.

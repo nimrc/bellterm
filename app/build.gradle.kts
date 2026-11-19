@@ -17,8 +17,8 @@ android {
         // loader supports from API 29; older releases refuse the library.
         minSdk = 29
         targetSdk = 36
-        versionCode = 10102
-        versionName = "1.1.2"
+        versionCode = 10103
+        versionName = "1.1.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Google Play does not allow an app to update itself outside Play, so
         // the Play bundle (-Pbellterm.play=true) leaves out the update check.

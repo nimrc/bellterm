@@ -128,3 +128,26 @@ fn touches_become_clicks_and_wheel_steps() {
         }]
     ));
 }
+
+#[test]
+fn shift_reaches_navigation_keys() {
+    let left = key(
+        keycode::DPAD_LEFT,
+        Modifiers::from_meta_state(0x1),
+        None,
+        false,
+    )
+    .unwrap();
+    assert_eq!(code(&left), (&ClientKeyCode::Left, Modifiers::SHIFT));
+    let both = key(
+        keycode::DPAD_LEFT,
+        Modifiers::from_meta_state(0x1 | 0x1000),
+        None,
+        false,
+    )
+    .unwrap();
+    assert_eq!(
+        code(&both),
+        (&ClientKeyCode::Left, Modifiers::SHIFT | Modifiers::CTRL)
+    );
+}

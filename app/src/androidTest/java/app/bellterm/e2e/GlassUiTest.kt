@@ -4,6 +4,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.view.KeyEvent
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Direction
@@ -303,6 +304,36 @@ class GlassUiTest {
         assertTrue(device.wait(Until.gone(By.res("changelog")), TIMEOUT))
         need(By.res("back")).click()
         need(By.res("action:keys"))
+    }
+
+    /** Issue #31: Shift latches from the extra-keys row and reaches the pane with the next key. */
+    @Test
+    fun t10_shiftLatchesForTheNextKey() {
+        val host = InstrumentationRegistry.getArguments().getString("host")
+        assumeTrue("no host given; skipping the live connection", host != null)
+        connectHost(host!!)
+        need(By.res("extra_keys"))
+        val connection = app.connections.value.values.single()
+        val pane = { connection.frame.value?.panes?.firstOrNull { it.focused }?.id }
+        val screen = { connection.frame.value?.runs?.joinToString("") { it.text }.orEmpty() }
+        assertTrue("a focused pane", waitFor { pane() != null })
+        // cat -v shows the bytes each key sends: ESC as ^[.
+        connection.text(pane(), "clear; cat -v\n")
+        Thread.sleep(SETTLE)
+
+        need(By.res("key:Shift")).click()
+        shot("23_shift_latched")
+        need(By.res("key:←")).click()
+        assertTrue("Shift+← reaches the pane as CSI 1;2D", waitFor { "^[[1;2D" in screen() })
+        need(By.res("key:Shift")).click()
+        need(By.res("key:Tab")).click()
+        assertTrue("Shift+Tab reaches the pane as back-tab", waitFor { "^[[Z" in screen() })
+        // The latch was used up: a plain ← follows.
+        need(By.res("key:←")).click()
+        assertTrue("an unlatched ← stays plain", waitFor { "^[[Z^[[D" in screen() })
+        shot("24_shift_chords")
+
+        connection.chord(pane(), 'c'.code, KeyEvent.META_CTRL_ON)
     }
 
     /** Adds [host] from the instrumentation arguments as a node, opens it, and trusts its key when vouched for. */

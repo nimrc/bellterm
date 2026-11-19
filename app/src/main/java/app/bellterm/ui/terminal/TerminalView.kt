@@ -44,7 +44,7 @@ class TerminalView(context: Context) : View(context) {
         fun onCopy(startColumn: Int, startRow: Int, endColumn: Int, endRow: Int)
         fun onPaste()
         fun onFontSize(sp: Float)
-        /** Ctrl or Alt latched by the extra-keys row was used up. */
+        /** Shift, Ctrl or Alt latched by the extra-keys row was used up. */
         fun onModifiersConsumed()
     }
 
@@ -507,8 +507,14 @@ class TerminalView(context: Context) : View(context) {
     private fun sendText(text: String) {
         if (text.isEmpty()) return
         val meta = latchedMeta
-        if (meta and (KEY_CTRL or KEY_ALT) != 0 && text.codePointCount(0, text.length) == 1) {
-            listener?.onChord(text.codePointAt(0), meta)
+        if (meta != 0 && text.codePointCount(0, text.length) == 1) {
+            var codepoint = text.codePointAt(0)
+            if (meta and KEY_SHIFT != 0) codepoint = Character.toUpperCase(codepoint)
+            if (meta and (KEY_CTRL or KEY_ALT) != 0) {
+                listener?.onChord(codepoint, meta)
+            } else {
+                listener?.onText(String(Character.toChars(codepoint)))
+            }
             consumeLatch()
             return
         }
@@ -571,6 +577,7 @@ class TerminalView(context: Context) : View(context) {
     companion object {
         const val MIN_FONT_SP = 7f
         const val MAX_FONT_SP = 32f
+        private const val KEY_SHIFT = KeyEvent.META_SHIFT_ON
         private const val KEY_CTRL = KeyEvent.META_CTRL_ON
         private const val KEY_ALT = KeyEvent.META_ALT_ON
         private const val KeyCharacterMapCombining = android.view.KeyCharacterMap.COMBINING_ACCENT

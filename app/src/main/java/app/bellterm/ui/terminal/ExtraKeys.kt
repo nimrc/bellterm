@@ -59,6 +59,7 @@ sealed interface ExtraKey {
 val DefaultExtraKeys: List<ExtraKey> = listOf(
     ExtraKey.Key("Esc", KeyEvent.KEYCODE_ESCAPE),
     ExtraKey.Key("Tab", KeyEvent.KEYCODE_TAB),
+    ExtraKey.Modifier("Shift", KeyEvent.META_SHIFT_ON),
     ExtraKey.Modifier("Ctrl", KeyEvent.META_CTRL_ON),
     ExtraKey.Modifier("Alt", KeyEvent.META_ALT_ON),
     ExtraKey.Key("←", KeyEvent.KEYCODE_DPAD_LEFT, repeats = true),
@@ -76,7 +77,7 @@ val DefaultExtraKeys: List<ExtraKey> = listOf(
 )
 
 /**
- * The row of keys a phone keyboard lacks. Ctrl and Alt latch for the next key
+ * The row of keys a phone keyboard lacks. Shift, Ctrl and Alt latch for the next key
  * or character, as on Termux; arrows and paging keys repeat while held. Keys
  * are small glass caps; a latched modifier fills with the session's [accent].
  */

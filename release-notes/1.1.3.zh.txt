@@ -1,0 +1,1 @@
+扩展按键行新增 Shift：先点 Shift 再点按键，即可发送 Shift+← 或 Shift+Tab，也可以和 Ctrl、Alt 组合。

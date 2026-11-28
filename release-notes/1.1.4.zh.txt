@@ -1,0 +1,1 @@
+修复在运行 omp 的主机上终端持续闪烁的问题：除非主机的 Herdr 配置已经设置了 pane_scrollbars，Bellterm 会自动关闭 Herdr 的 pane 滚动条。

@@ -1,0 +1,1 @@
+Fixes a terminal that kept flickering on hosts running omp: Bellterm now turns off Herdr's pane scrollbar on the host unless its config already sets pane_scrollbars.

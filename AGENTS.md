@@ -11,7 +11,9 @@ them running. The app never starts or stops Herdr. It installs or updates Herdr
 only when the user taps Install/Update Herdr after a connection found none or
 an outdated one, and then only through Herdr's own `herdr update --handoff` or
 its installer at `https://herdr.dev/install.sh` (`install.ps1` on Windows
-OpenSSH hosts; `native/src/herdr_setup.rs`).
+OpenSSH hosts; `native/src/herdr_setup.rs`). The one Herdr setting it writes is
+`[ui] pane_scrollbars = false`, on each POSIX host whose config leaves it
+unset, followed by `herdr server reload-config` (`native/src/herdr_config.rs`).
 
 | Location | Responsibility |
 | --- | --- |

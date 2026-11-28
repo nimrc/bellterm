@@ -132,6 +132,13 @@ Nothing else is installed, and nothing is started or stopped: if no Herdr
 server is running for the session, start one there with `herdr`. Jump hosts
 need only SSH with TCP forwarding allowed.
 
+On a POSIX host whose Herdr config does not set `pane_scrollbars`, Bellterm adds
+`pane_scrollbars = false` under `[ui]` and runs `herdr server reload-config`
+after connecting. Herdr's pane scrollbar takes a column only while the pane has
+scrollback, so a program that clears its scrollback when resized (omp) narrows
+and widens the pane in a loop and the screen flickers. Set `pane_scrollbars`
+yourself, either way, and Bellterm leaves it alone.
+
 ## How it works
 
 ```mermaid
@@ -171,6 +178,7 @@ flowchart LR
 | `native/src/config.rs` | The route document Kotlin sends, parsed into zeroizing types |
 | `native/src/keys.rs` | Key generation and import, certificate inspection |
 | `native/src/ssh_config.rs` | OpenSSH client configuration import |
+| `native/src/herdr_setup.rs`, `herdr_config.rs` | Install/Update Herdr; the host's `pane_scrollbars` setting |
 | `native/src/vt.rs` | Herdr cells (and popups) as VT for libghostty |
 | `native/src/screen.rs`, `render.rs` | libghostty terminal; frames packed for Kotlin |
 | `native/src/session.rs` | Connection, event mailboxes, input routing |

@@ -14,7 +14,7 @@
 
 mod auth;
 
-use crate::{Error, Result};
+use crate::{Error, Result, herdr_config};
 pub use auth::Credential;
 use herdr_client::{
     Stream, answer_remote_bridge, answer_windows_bridge, relay_command, remote_bridge_command,
@@ -80,6 +80,10 @@ pub fn open(route: Route, stop: &AtomicBool) -> Result<Stream> {
     remote.reach_relay(stop)?;
     match remote.bridge(posix, stop, answer_remote_bridge) {
         Err(Error::Client(herdr_client::Error::SshClosed)) => {}
+        Ok(stream) => {
+            herdr_config::spawn(remote, session);
+            return Ok(stream);
+        }
         result => return result,
     }
     // Without a banner the host either has no Herdr, or is Windows OpenSSH,

@@ -28,6 +28,7 @@ serde_json        = { workspace = true }
 strip-ansi-escapes = "0.2"
 thiserror         = { workspace = true }
 tokio             = { features = ["io-util", "net", "rt", "sync", "time"], version = "1" }
+toml_edit         = "0.25"
 tracing           = { workspace = true }
 unicode-width     = "0.2.2"
 zeroize           = { features = ["serde"], version = "=1.9.1" }
